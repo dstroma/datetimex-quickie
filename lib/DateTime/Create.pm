@@ -1,6 +1,7 @@
 package DateTime::Create 0.001 {
 
 	use v5.36;
+	use DateTime ();
 	use Regexp::Common 'number';
 	use Try::Tiny;
 
@@ -237,15 +238,15 @@ The motivation behind this module is the verbosity of creating DateTime objects:
 		second => 0
 	);
 
-Users are told to look at the bewildering array of modules on CPAN to find one
-that meets their parsing needs.
+DateTime does not parse date strings; users are instead directed to CPAN to
+choose from a bewildering array of other modules to do this.
 
 This module takes a "do what I mean" approach and attempts to parse datetimes
-passed as either a list, an epoch time, or an ISO8601-style string.
+passed as either a list, an epoch time, or an ISO-style string.
 
-=head1 SUBCLASSES OF DATETIME
+=head1 SUBCLASSING DATETIME
 
-If you normally use your own sublass of DateTime, this method will attempt to
+If you normally use your own sublass of DateTime, this method will try to
 return objects of the correct class. In other words,
 
 	package My::DateTime { use parent 'DateTime'; }
