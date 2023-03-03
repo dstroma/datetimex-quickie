@@ -26,14 +26,14 @@ is(DateTime->create( 123456789.5)  => '1973-11-29T21:33:09', 'known +epoch with 
 is(DateTime->create(-123456789.5)  => '1966-02-02T02:26:50', 'known +epoch with fractional seconds gives correct date with rounding');
 
 # Test fractional seconds
-is(DateTime->create( 123456789.5  )->nanosecond => s_to_ns(    0.5 ),  '+epoch with nanoseconds (1 decimal place) correct');
-is(DateTime->create( 123456789.333)->nanosecond => s_to_ns(    0.333), '+epoch with nanoseconds (3 decimal places) correct');
-is(DateTime->create(-123456789.667)->nanosecond => s_to_ns(1 - 0.667), '-epoch with nanoseconds correct');
+is(DateTime->create( 123456789.5  )->nanosecond => s_to_ns(  0.5 ),  '+epoch with nanoseconds (1 decimal place) correct');
+is(DateTime->create( 123456789.333)->nanosecond => s_to_ns(  0.333), '+epoch with nanoseconds (3 decimal places) correct');
+is(DateTime->create(-123456789.667)->nanosecond => s_to_ns(1-0.667), '-epoch with nanoseconds correct');
 
 ################
 # List Parsing #
 
-# list, without time zone
+# create via a list, without time zone
 my $dt;
 ok($dt = DateTime->create(2020, 2, 28, 12, 30, 15), 'create via list');
 ok(

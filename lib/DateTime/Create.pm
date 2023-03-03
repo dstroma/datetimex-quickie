@@ -5,7 +5,7 @@ package DateTime::Create 0.001 {
 	use Try::Tiny;
 
 	our $looks_like;
-	our $force_iso_parser;
+	our $force_parser;
 	our $parser_used;
 
 	our ($datetime_regex, @datetime_regex_capture_labels) = prepare_regex_and_labels();
@@ -17,6 +17,10 @@ package DateTime::Create 0.001 {
 
 	sub create ($maybe_class, @params) {
 		my $class = coerce_class($maybe_class);
+
+		# Reset global debugging variables
+		undef $looks_like;
+		undef $parser_used;
 
 		# A list
 		if (@params > 1) {
@@ -60,9 +64,9 @@ package DateTime::Create 0.001 {
 	}
 
 	sub new_from_iso_string ($class, $string) {
-		if ($force_iso_parser) {
-			return new_from_iso_string_internal($class, $string) if $force_iso_parser eq 'internal';
-			return new_from_iso_string_external($class, $string) if $force_iso_parser eq 'external';
+		if ($force_parser) {
+			return new_from_iso_string_internal($class, $string) if $force_parser eq 'internal';
+			return new_from_iso_string_external($class, $string) if $force_parser eq 'external';
 		}
 			
 		if (my $dt = new_from_iso_string_internal($class, $string)) {
@@ -200,48 +204,98 @@ package DateTime::Create 0.001 {
 
 1;
 
-=pod
+=head1 NAME
 
-Synopsis:
+DateTime::Create - a convenient, "do what I mean" way to create new DateTime
+objects.
 
-This module adds a 'create' method to DateTime.
+=head1 SYNOPSIS
 
-	use DateTime::Create;
+	use DateTime::Create; # adds create() method to DateTime
 	my $dt1 = DateTime->create(2023, 03, 01, 0, 0, 0, 'America/Chicago');
 	my $dt2 = DateTime->create(scalar time);
-	my $dt3 = DateTime->create('1956-07-11 00:00:00');
+	my $dt3 = DateTime->create('1978-07-04 20:18:45');
 
-Alternatively, if you would rather avoid the monkeypatching of DateTime, you can
-load this module without calling import and then use its create method (or new
-method if you prefer). Simply pass an empty list to the use function:
+Or
 
-	use DateTime::Create (); # no import
+	use DateTime::Create ();  # will avoid monkeypatching the DateTime module
+	require DateTime::Create; # also avoids monkeypatching
 	my $dt = DateTime::Create->create(...) 
 
-or
+=head1 DESCRIPTION
 
-	require DateTime::Create;
-	my $dt = DateTime::Create->create(...)
+This module offers a create() class method that can be exported into the
+DateTime namespace. It may also be used without exporting anything. It
+returns new DateTime objects.
 
-The create method attempts to 'do the right thing' with the parameter(s) it is
-given. The options are:
+The motivation behind this module is the verbosity with which DateTime objects
+must be created:
 
-list
+	my $datetime = DateTime->new(
+		year => 2000,
+		month => 1,
+		day => 1,
+		hour => 0,
+		minute => 0,
+		second => 0
+	);
 
-A list is interpreted as all of the elements necessary to create a DateTime in 
+Users reading DateTime's documentation will see a clear disclaimer stating how
+that module does not parse dates by itself; instead pointing users to a
+bewildering away of DateTime::Format modules on CPAN to find one to their
+parsing.
+
+This module takes a "do what I mean" approach and attempts to parse datetimes
+passed as either a list, an epoch time, or an ISO8601 string.
+
+=head1 SUBCLASSES OF DATETIME
+
+If you normally use your own sublass of DateTime, this method will attempt to
+return objects of the correct class. In other words,
+
+	package My::DateTime { use parent 'DateTime'; }
+	use DateTime::Create;
+	my $obj = My::DateTime->create(...); # Returns a My::DateTime object
+
+=head1 PUBLIC METHODS
+
+There is only one method intended for public consumptions, which is the
+create() class method. It can be used with three different kinds of arguments.
+
+=over 4
+
+=item create(list)
+
+A list is interpreted as containing elements necessary to create a DateTime in 
 descending order, in other words, year, month, day, hour, minute, second,
-and optionall nanosecond, in that order.
+and optional nanosecond, in that order.
 
-Only the year is required. The default month and day are 1, while the default
-hour, minute, and second are 0.
-
-Optionally, a time_zone string may be supplied at the beginning or end of the list.
+Optionally, a time_zone name may be supplied at the beginning or end of the list.
 This string will be checked using the DateTime::TimeZone->is_valid_name method.
 
-iso
+	$dt = DateTime->create(2020, 01, 01, 8, 30, 0, 'America/Chicago');
+	# 2020-01-01T08:30:00
+
+Only the year must be defined. The remaining elements may be undef or missing
+(except that at least two elements are needed to distinguish it as a list), in
+which case the default month and day are 1, while the default hour, minute, and
+second are 0. 
+
+	$dt = DateTime->create(2020, undef); # 2020-01-01T00:00:00
+	$dt = DateTime->create(2020);        # 1970-01-01T00:33:40 (2,020 seconds from epoch)
+
+=item create(number)
+
+An integer or float is interpreted as an epoch time and is passed directly
+to DateTime's from_epoch() class method without any extra processing.
+
+=item create(string)
+
+If the argument to create() is neither a list nor a number, it is assumed to
+be an ISO8601 style date string.
 
 This module will try to parse strings it thinks are ISO 8601 datetimes using
-its own internal parser (regex) if it matches forms like the following
+its own internal parser (regex). It will match any forms like the following
 (the separator between the date and time may be a space or the letter T):
 
 	YYYY-MM-DD HH:MM:SS
@@ -250,8 +304,8 @@ its own internal parser (regex) if it matches forms like the following
 	YYYY-MM-DD HH:MM:SS[+-]NN
 	YYYY-MM-DD HH:MM:SS[+-]NN:NN
 
-The internal parser cannot handle uncommon cases, such as dates before year 0000
-or after 9999, for example.
+The internal parser cannot handle unusual cases, such as dates before year 0000
+or after year 9999, for example.
 
 If unsuccessful, the module DateTime::Format::ISO8601 is used (if available)
 to attempt to parse it instead.
@@ -259,14 +313,68 @@ to attempt to parse it instead.
 Strangely the DateTime::Format::ISO8601 module will not parse a two-digit offset
 value or an offset value with no separator between the hours and minutes.
 
-epoch
+=back
 
-An integer or real number. Passed to DateTime's from_epoch method without much
-processing.
+=head1 DEBUGGING
 
-DEPENDENCIES
+The following package globals may assist in debugging.
 
-Regexp::Common
-DateTime
-barewords
+=over 4
+
+=item $DateTime::Create::looks_like
+
+What the module thinks the most recent argument type was. Contains one of the
+strings 'list', 'epoch', or 'iso'. May be undef.
+
+=item $DateTime::Create::parser_used
+
+If used to parse an ISO-style string, may be 'internal' or 'external', with
+'external' referring to DateTime::Format::ISO8601;
+
+=item $DateTime::Create::force_parser
+
+If this variable equals the string 'internal' or 'external', the create() method
+will only attempt to use only the corresponding parser (as described above). The
+default is undef, which will favor the internal parser.
+
+=head1 DEPENDENCIES
+
+=item perl v5.36 or greater
+
+This module uses Perl's new native subroutine signatures. While it's a trivial
+module that could have easily been written for a (much) older version, I believe
+it is in the community's interest to encourage people to upgrade.
+
+=item Regexp::Common
+
+=item DateTime
+
+=item Try::Tiny
+
+=item Test::More for the test suite
+
+=head1 AUTHOR
+
+Dondi Michael Stroma
+
+=head1 COPYRIGHT
+
+Copyright (C) 2023 by Dondi Michael Stroma.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of either:
+ 
+a) the GNU General Public License;
+   either version 2 of the License, or (at your option) any later
+   version.  You should have received a copy of the GNU General
+   Public License along with this program; see the file COPYING.
+   If not, write to the Free Software Foundation, Inc., 59
+   Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ 
+b) the Perl Artistic License.
+ 
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
 
