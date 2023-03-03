@@ -134,8 +134,6 @@ package DateTime::Create 0.001 {
 			unless (ref $dt eq $class) {
 				bless $dt, $class;
 			}
-		} catch {
-			warn $_;
 		};
 
 		if ($dt) {
@@ -228,8 +226,7 @@ This module offers a create() class method that can be exported into the
 DateTime namespace. It may also be used without exporting anything. It
 returns new DateTime objects.
 
-The motivation behind this module is the verbosity with which DateTime objects
-must be created:
+The motivation behind this module is the verbosity of creating DateTime objects:
 
 	my $datetime = DateTime->new(
 		year => 2000,
@@ -240,13 +237,11 @@ must be created:
 		second => 0
 	);
 
-Users reading DateTime's documentation will see a clear disclaimer stating how
-that module does not parse dates by itself; instead pointing users to a
-bewildering away of DateTime::Format modules on CPAN to find one to their
-parsing.
+Users are told to look at the bewildering array of modules on CPAN to find one
+that meets their parsing needs.
 
 This module takes a "do what I mean" approach and attempts to parse datetimes
-passed as either a list, an epoch time, or an ISO8601 string.
+passed as either a list, an epoch time, or an ISO8601-style string.
 
 =head1 SUBCLASSES OF DATETIME
 
@@ -255,14 +250,12 @@ return objects of the correct class. In other words,
 
 	package My::DateTime { use parent 'DateTime'; }
 	use DateTime::Create;
-	my $obj = My::DateTime->create(...); # Returns a My::DateTime object
+	my $obj = My::DateTime->create(...); # returns a My::DateTime object
 
 =head1 PUBLIC METHODS
 
-There is only one method intended for public consumptions, which is the
+There is only one method intended for public consumption, which is the
 create() class method. It can be used with three different kinds of arguments.
-
-=over 4
 
 =item create(list)
 
@@ -287,7 +280,7 @@ second are 0.
 =item create(number)
 
 An integer or float is interpreted as an epoch time and is passed directly
-to DateTime's from_epoch() class method without any extra processing.
+to DateTime's from_epoch() class method.
 
 =item create(string)
 
@@ -337,7 +330,11 @@ If this variable equals the string 'internal' or 'external', the create() method
 will only attempt to use only the corresponding parser (as described above). The
 default is undef, which will favor the internal parser.
 
+=back
+
 =head1 DEPENDENCIES
+
+=over 4
 
 =item perl v5.36 or greater
 
@@ -353,28 +350,17 @@ it is in the community's interest to encourage people to upgrade.
 
 =item Test::More for the test suite
 
+=back
+
 =head1 AUTHOR
-
-Dondi Michael Stroma
-
-=head1 COPYRIGHT
-
-Copyright (C) 2023 by Dondi Michael Stroma.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of either:
  
-a) the GNU General Public License;
-   either version 2 of the License, or (at your option) any later
-   version.  You should have received a copy of the GNU General
-   Public License along with this program; see the file COPYING.
-   If not, write to the Free Software Foundation, Inc., 59
-   Temple Place, Suite 330, Boston, MA 02111-1307 USA
+Dondi Michael Stroma, E<lt>dstroma@gmail.comE<gt>
  
-b) the Perl Artistic License.
+=head1 COPYRIGHT AND LICENSE
  
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-
+Copyright (C) 2023 by Dondi Michael Stroma
+ 
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+ 
+=cut

@@ -9,6 +9,7 @@ use DateTime;
 require_ok('DateTime::Create');
 
 # Method should not exist yet in DateTime
+eval 'use DateTime::Create ()';
 ok(
 	not(DateTime->can('create')),
 	'DateTime should not have a create() method yet'

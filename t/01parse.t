@@ -103,19 +103,19 @@ ok($dt = DateTime->create('1989-06-05T12:02:59.56+0130'),  'create datetime with
 #is($dt => '1989-06-05T10:32:59',                          'datetime is converted to UTC using offset');
 
 # string with offset, force internal parser
-$DateTime::Create::force_iso_parser = 'internal';
+$DateTime::Create::force_parser = 'internal';
 ok($dt = DateTime->create('1989-06-05T12:02:59.56+02'),    'force internal create with offset +02');
 ok($dt = DateTime->create('1989-06-05T12:02:59.56-05'),    'force internal create with offset -05');
 ok($dt = DateTime->create('1989-06-05T12:02:59.56+02:30'), 'force internal create with offset +02:30');
 ok($dt = DateTime->create('1989-06-05T12:02:59.56-05:30'), 'force internal create with offset -05:30');
-undef $DateTime::Create::force_iso_parser;
+undef $DateTime::Create::force_parser;
 
 # string with offset, force external parser
-# Note DateTime::Format::ISO8601 requring minutes and the separator in the offset
-$DateTime::Create::force_iso_parser = 'external';
-ok($dt = DateTime->create('1989-06-05T12:02:59.56+02:30'), 'force external create with + offset');
-ok($dt = DateTime->create('1989-06-05T12:02:59.56-07:00'), 'force external create with - offset ');
-undef $DateTime::Create::force_iso_parser;
+# Note DateTime::Format::ISO8601 sometimmes requires the separator in the offset
+$DateTime::Create::force_parser = 'external';
+ok($dt = DateTime->create('1989-06-05T12:02:59.56+02'), 'force external create with + offset');
+ok($dt = DateTime->create('1989-06-05T12:02:59.1-07:00'), 'force external create with - offset ');
+undef $DateTime::Create::force_parser;
 
 # this string is only handled by DateTime::Format::ISO8601 module
 ok($dt = DateTime->create('20230302T060226Z'),             'create datetime from ISO string that can only be parsed externally');
