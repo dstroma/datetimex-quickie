@@ -285,6 +285,8 @@ return objects of the correct class. In other words,
 There is only one method intended for public consumption, which is the
 create() class method. It can be used with three different kinds of arguments.
 
+=over 4
+
 =item create(list) OR create(arrayref)
 
 A list is interpreted as containing elements necessary to create a DateTime in 
@@ -351,8 +353,8 @@ The following package globals may assist in debugging.
 
 =item $DateTime::Create::looks_like
 
-What the module thinks the most recent argument type was. Contains one of the
-strings 'list', 'epoch', or 'iso'. May be undef.
+What this module thinks the most recent argument type was. Contains one of the
+strings 'empty', 'list', 'arrayref', 'epoch', or 'iso_string'. May be undef.
 
 =item $DateTime::Create::parser_used
 
@@ -373,9 +375,9 @@ default is undef, which will favor the internal parser.
 
 =item perl v5.36 or greater
 
-This module uses Perl's new native subroutine signatures. While it's a trivial
-module that could have easily been written for a (much) older version, I believe
-it is in the community's interest to encourage people to upgrade.
+This module uses Perl's new native subroutine signatures. While this module is
+a simple one that could have easily been written for a (much) older version, of
+perl, I believe it is in the community's interest to encourage upgrading.
 
 =item Regexp::Common
 

@@ -119,8 +119,8 @@ The following package globals may assist in debugging.
 
 - $DateTime::Create::looks\_like
 
-    What the module thinks the most recent argument type was. Contains one of the
-    strings 'list', 'epoch', or 'iso'. May be undef.
+    What this module thinks the most recent argument type was. Contains one of the
+    strings 'empty', 'list', 'arrayref', 'epoch', or 'iso\_string'. May be undef.
 
 - $DateTime::Create::parser\_used
 
@@ -137,9 +137,9 @@ The following package globals may assist in debugging.
 
 - perl v5.36 or greater
 
-    This module uses Perl's new native subroutine signatures. While it's a trivial
-    module that could have easily been written for a (much) older version, I believe
-    it is in the community's interest to encourage people to upgrade.
+    This module uses Perl's new native subroutine signatures. While this module is
+    a simple one that could have easily been written for a (much) older version, of
+    perl, I believe it is in the community's interest to encourage upgrading.
 
 - Regexp::Common
 - DateTime
@@ -156,11 +156,3 @@ Copyright (C) 2023 by Dondi Michael Stroma
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
-
-# POD ERRORS
-
-Hey! **The above document had some coding errors, which are explained below:**
-
-- Around line 288:
-
-    '=item' outside of any '=over'
