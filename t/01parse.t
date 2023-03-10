@@ -34,7 +34,6 @@ is(DateTime->create(-123456789.667)->nanosecond => s_to_ns(1-0.667), '-epoch wit
 # List Parsing #
 
 # create via a list, without time zone
-my $dt;
 ok($dt = DateTime->create(2020, 2, 28, 12, 30, 15), 'create via list');
 ok(
 	(
@@ -66,6 +65,23 @@ ok($dt->time_zone->name eq 'America/Chicago',       '...new object has correct t
 ok($dt = DateTime->create(2020, 'EST'),             'create with time zone at end');
 ok($dt eq "2020-01-01T00:00:00",                    '...new object is correct');
 ok($dt->time_zone->name eq 'EST',                   '...new object has correct timezone');
+
+# list with all elements undef
+ok($dt = DateTime->create(undef, undef),            'create with list, but with only undef elements');
+ok($dt eq "0000-01-01T00:00:00",                    '...new object is correct');
+
+# arrayref
+ok($dt = DateTime->create([]),                      'create with arrayref, but empty');
+ok($dt eq "0000-01-01T00:00:00",                    '...new object is correct');
+ok($dt = DateTime->create([2020]),                  'create with arrayref, but only the year');
+ok($dt eq "2020-01-01T00:00:00",                    '...new object is correct');
+ok($dt = DateTime->create([2020, 07, 04]),          'create with arrayref, with y,m,d');
+ok($dt eq "2020-07-04T00:00:00",                    '...new object is correct');
+
+#################
+# Empty parsing #
+ok($dt = DateTime->create,                          'create with nothing');
+ok($dt eq "0000-01-01T00:00:00",                    '...new object is correct');
 
 ##################
 # String Parsing #

@@ -24,15 +24,26 @@ package DateTime::Create 0.001 {
 		undef $looks_like;
 		undef $parser_used;
 
-		# A list
+		# Is it empty?
+		if (@params == 0) {
+			$looks_like = 'empty';
+			return new_from_empty($class);
+		}
+
+		# Is it a list?
 		if (@params > 1) {
 			$looks_like = 'list';
 			return new_from_list($class, @params);
 		}
 
+		# Is it an arrayref?
 		my $param = $params[0];
+		if (ref $param and ref $param eq 'ARRAY') {
+			$looks_like = 'arrayref';
+			return new_from_list($class, @$param);
+		}
 
-		# An integer or real number looks like an epoch time
+		# Is it an integer or real number (epoch)?
 		if ($param =~ m/^$RE{num}{int}$/ or $param =~ m/^$RE{num}{real}$/) {
 			$looks_like = 'epoch';
 			return new_from_epoch($class, $param);
@@ -49,12 +60,23 @@ package DateTime::Create 0.001 {
 		#);
 	}
 
+	sub new_from_empty ($class) {
+		return $class->new(
+			year   => 0,
+			month  => 1,
+			day    => 1,
+			hour   => 0,
+			minute => 0,
+			second => 0,
+		);
+	}
+
 	sub new_from_list ($class, @params) {
 		my $time_zone = extract_time_zone_from_params(\@params);
 		my ($year, $month, $day, $hour, $minute, $second, $nanosecond) = @params;
 
 		return $class->new(
-			year   => $year,
+			year   => $year   // 0,
 			month  => $month  || 1,
 			day    => $day    || 1,
 			hour   => $hour   // 0,
@@ -239,11 +261,15 @@ The motivation behind this module is the verbosity of creating DateTime objects:
 		second => 0
 	);
 
-DateTime does not parse date strings; users are instead directed to CPAN to
-choose from a bewildering array of other modules to do this.
+That is a lot of typing just to create one datetime object. Since the DateTime
+module does not parse date strings, users are instead directed to CPAN to
+choose from a bewildering array of other modules to do this for them.
 
 This module takes a "do what I mean" approach and attempts to parse datetimes
-passed as either a list, an epoch time, or an ISO-style string.
+passed as either a list, arrayref, an epoch time, or an ISO-style string.
+
+The most simple use is to call DateTime->create with no arguments which returns
+a DateTime object equivalent to 0000-01-01 00:00:00.
 
 =head1 SUBCLASSING DATETIME
 
@@ -259,7 +285,7 @@ return objects of the correct class. In other words,
 There is only one method intended for public consumption, which is the
 create() class method. It can be used with three different kinds of arguments.
 
-=item create(list)
+=item create(list) OR create(arrayref)
 
 A list is interpreted as containing elements necessary to create a DateTime in 
 descending order, in other words, year, month, day, hour, minute, second,
@@ -271,13 +297,23 @@ This string will be checked using the DateTime::TimeZone->is_valid_name method.
 	$dt = DateTime->create(2020, 01, 01, 8, 30, 0, 'America/Chicago');
 	# 2020-01-01T08:30:00
 
-Only the year must be defined. The remaining elements may be undef or missing
-(except that at least two elements are needed to distinguish it as a list), in
-which case the default month and day are 1, while the default hour, minute, and
-second are 0. 
+The default year is 0. The default month and day are 1. The default hour,
+minute, and second are 0.
 
-	$dt = DateTime->create(2020, undef); # 2020-01-01T00:00:00
-	$dt = DateTime->create(2020);        # 1970-01-01T00:33:40 (2,020 seconds from epoch)
+In create(list) form, either zero or more than one element is required (as
+a single element would be interpreted as a string or seconds since epoch), but
+any element may be undef.
+
+In create(arrayref) form, all elements may be undef or
+missing.
+
+	$dt = DateTime->create;               # 0000-01-01T00:00:00
+	$dt = DateTime->create([]);           # same
+	$dt = DateTime->create(undef, undef); # same
+
+
+	$dt = DateTime->create(2020,  undef); # 2020-01-01T00:00:00
+	$dt = DateTime->create(2020);         # 1970-01-01T00:33:40 (2020 seconds since epoch)
 
 =item create(number)
 
