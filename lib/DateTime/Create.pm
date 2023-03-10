@@ -1,6 +1,7 @@
 package DateTime::Create 0.001 {
 
 	use v5.36;
+	use Carp;
 	use DateTime ();
 	use Regexp::Common 'number';
 	use Try::Tiny;
@@ -13,7 +14,7 @@ package DateTime::Create 0.001 {
 
 	sub new {
 		# This module is not meant to be its own class!
-		die "new() is not a method of DateTime::Create";
+		croak "new() is not a method of DateTime::Create";
 	}
 
 	sub create ($maybe_class, @params) {
@@ -42,7 +43,7 @@ package DateTime::Create 0.001 {
 		return new_from_iso_string($class, $param);
 
 		# Doesn't look like any of the above
-		#die(
+		#croak(
 		#	'Argument(s) to DateTime::Create->create do not resemble a supported pattern; ' .
 		#	'expected datetime string, epoch number, or list'
 		#);
@@ -77,10 +78,10 @@ package DateTime::Create 0.001 {
 			return $dt;
 		}
 
-		die "DateTime::Create::create is unable to parse datetime string $string";
+		croak "DateTime::Create::create is unable to parse datetime string $string";
 	}
 
-	sub new_from_iso_string_internal ($class, $string) {	
+	sub new_from_iso_string_internal ($class, $string) {
 		if (my (@capture) = $string =~ m/$datetime_regex/) {
 			$parser_used = 'internal';
 
@@ -89,7 +90,7 @@ package DateTime::Create 0.001 {
 
 			my $nanosecond;
 			if ($capture{'second_fraction'}) {
-				$capture{'second_fraction'} =~ s`^,`\.`; # relace comma with dot
+				$capture{'second_fraction'} =~ s/^,/\./; # relace comma with dot
 				$nanosecond = $capture{'second_fraction'} * 1_000_000_000;
 			}
 
@@ -108,7 +109,7 @@ package DateTime::Create 0.001 {
 			# The regex should not allow this to happen, but this code might be
 			# useful for debugging
 			if ($capture{'zulu'} and $capture{'offset'}) {
-				die(
+				croak(
 					"DateTime::Create::new_from_iso_string argument $string " .
 					'should not specify both Z and a timezone offset ' .
 					'(should be one or the other)'
@@ -116,7 +117,7 @@ package DateTime::Create 0.001 {
 			}
 
 			if ($capture{'offset'}) {
-				# DateTime::TimeZone does not take offsets < 4 digits (excluding +/-)
+				# DateTime::TimeZone requires offsets to include minutes
 				my $offset = $capture{'offset'};
 				$offset = "0$offset:00" if $offset =~ m/^[+-]\d$/;
 				$offset = "$offset:00"  if $offset =~ m/^[+-]\d\d$/;
@@ -303,9 +304,6 @@ or after year 9999, for example.
 
 If unsuccessful, the module DateTime::Format::ISO8601 is used (if available)
 to attempt to parse it instead.
-
-Strangely the DateTime::Format::ISO8601 module will not parse a two-digit offset
-value or an offset value with no separator between the hours and minutes.
 
 =back
 
