@@ -1,25 +1,18 @@
 # NAME
 
-DateTime::Create - a convenient, "do what I mean" way to create new DateTime
-objects.
+DateTimeX::Create - Extend DateTime by adding a convenient create() method.
 
 # SYNOPSIS
 
-        use DateTime::Create; # adds create() method to DateTime
+        use DateTimeX::Create; # adds create() method to DateTime
         my $dt1 = DateTime->create(2023, 03, 01, 0, 0, 0, 'America/Chicago');
-        my $dt2 = DateTime->create(scalar time);
-        my $dt3 = DateTime->create('1978-07-04 20:18:45');
-
-Or
-
-        use DateTime::Create ();  # will avoid monkeypatching the DateTime module
-        require DateTime::Create; # also avoids monkeypatching
-        my $dt = DateTime::Create->create(...) 
+        my $dt2 = DateTime->create(time);                  # time since epoch
+        my $dt3 = DateTime->create('1978-07-04 20:18:45'); # parses ISO-like string
 
 # DESCRIPTION
 
-This module offers a create() class method that can be exported into the
-DateTime namespace. It may also be used without exporting anything. It
+This module offers a create() class method that can be exported into DateTime
+or another specified module. It may also be used without exporting anything. It
 returns new DateTime objects.
 
 The motivation behind this module is the verbosity of creating DateTime objects:
@@ -43,14 +36,35 @@ passed as either a list, arrayref, an epoch time, or an ISO-style string.
 The most simple use is to call DateTime->create with no arguments which returns
 a DateTime object equivalent to 0000-01-01 00:00:00.
 
-# SUBCLASSING DATETIME
+# EXPORTING
 
-If you normally use your own sublass of DateTime, this method will try to
-return objects of the correct class. In other words,
+By default this module exports the create() method to the DateTime package.
+You can specify that this module exports its create method to a different
+namspace instead of to DateTime (or not to export anything) by passing
+arguments to its import method via use:
 
-        package My::DateTime { use parent 'DateTime'; }
-        use DateTime::Create;
-        my $obj = My::DateTime->create(...); # returns a My::DateTime object
+        use DateTimeX::Create (export_to => 'My::DateTime::Class');
+        My::DateTime::Class->create(...); # returns Dat
+
+        use DateTimeX::Create (); # no exports
+        DateTimeX::Create->create(...); # returns DateTime objects
+        DateTimeX::Create::create('My::DateTime', ...) # returns My::DateTime objects
+
+Exporting to multiple different namespaces is best done by calling import
+directly:
+
+        require DateTimeX::Create;
+        DateTimeX->import(export_to => 'My::DateTime::Class');
+        DateTimeX->import(export_to => 'My::Other::DateTime::Class');
+
+Note that this module does NOT export anything to the caller's namespace. The
+following forms will NOT export create() to My::Caller:
+
+        package My::Caller {
+                use DateTimeX::Create;
+                use DateTimeX::Create qw(create);
+        }
+        My::Caller->create(...) # error
 
 # PUBLIC METHODS
 
@@ -85,7 +99,11 @@ create() class method. It can be used with three different kinds of arguments.
 
 
             $dt = DateTime->create(2020,  undef); # 2020-01-01T00:00:00
-            $dt = DateTime->create(2020);         # 1970-01-01T00:33:40 (2020 seconds since epoch)
+
+    Be careful not to supply just a year in list form, as this is interpreted as
+    an epoch time:
+
+            $dt = DateTime->create(2020); # 1970-01-01T00:33:40
 
 - create(number)
 
@@ -117,17 +135,17 @@ create() class method. It can be used with three different kinds of arguments.
 
 The following package globals may assist in debugging.
 
-- $DateTime::Create::looks\_like
+- $DateTimeX::Create::looks\_like
 
     What this module thinks the most recent argument type was. Contains one of the
     strings 'empty', 'list', 'arrayref', 'epoch', or 'iso\_string'. May be undef.
 
-- $DateTime::Create::parser\_used
+- $DateTimeX::Create::parser\_used
 
     If used to parse an ISO-style string, may be 'internal' or 'external', with
     'external' referring to DateTime::Format::ISO8601;
 
-- $DateTime::Create::force\_parser
+- $DateTimeX::Create::force\_parser
 
     If this variable equals the string 'internal' or 'external', the create() method
     will only attempt to use only the corresponding parser (as described above). The

@@ -1,4 +1,4 @@
-package DateTime::Create 0.001 {
+package DateTimeX::Create 0.001 {
 
 	use v5.36;
 	use Carp;
@@ -14,7 +14,7 @@ package DateTime::Create 0.001 {
 
 	sub new {
 		# This module is not meant to be its own class!
-		croak "new() is not a method of DateTime::Create";
+		croak "new() is not a method of DateTimeX::Create";
 	}
 
 	sub create ($maybe_class, @params) {
@@ -55,7 +55,7 @@ package DateTime::Create 0.001 {
 
 		# Doesn't look like any of the above
 		#croak(
-		#	'Argument(s) to DateTime::Create->create do not resemble a supported pattern; ' .
+		#	'Argument(s) to DateTimeX::Create->create do not resemble a supported pattern; ' .
 		#	'expected datetime string, epoch number, or list'
 		#);
 	}
@@ -100,7 +100,7 @@ package DateTime::Create 0.001 {
 			return $dt;
 		}
 
-		croak "DateTime::Create::create is unable to parse datetime string $string";
+		croak "DateTimeX::Create::create is unable to parse datetime string $string";
 	}
 
 	sub new_from_iso_string_internal ($class, $string) {
@@ -132,7 +132,7 @@ package DateTime::Create 0.001 {
 			# useful for debugging
 			if ($capture{'zulu'} and $capture{'offset'}) {
 				croak(
-					"DateTime::Create::new_from_iso_string argument $string " .
+					"DateTimeX::Create::new_from_iso_string argument $string " .
 					'should not specify both Z and a timezone offset ' .
 					'(should be one or the other)'
 				);
@@ -186,10 +186,35 @@ package DateTime::Create 0.001 {
 		return undef;
 	}
 
-	sub import {
-		require DateTime;
-		no warnings 'once';
-		*DateTime::create = \&create;
+	sub import ($class, @params) {
+		state %exported;
+		state $help = 
+			'Valid uses:'.
+			'	use DateTimeX::Create;    # automatically export to DateTime'.
+			'	use DateTimeX::Create (); # no export'.
+			'	use DateTimeX::Create (export_to => "My::Module"); # export to specified module';
+
+		my $export_to = 'DateTime';
+
+		if (@params) {
+			unless ($params[0] eq 'export_to' and @params == 2) {
+				croak $help;
+			}
+			$export_to = $params[1];
+		}
+
+		return 1 if $exported{$export_to};
+
+		if ($export_to eq 'DateTime') {
+			require DateTime;
+			no warnings 'once';
+			*DateTime::create = \&create;
+		} else {
+			no warnings 'once';
+			no strict 'refs';
+			*{$export_to . '::create'} = \&create;
+		}
+		$exported{$export_to} = 1;
 	}
 
 	sub coerce_class ($class) {
@@ -200,7 +225,7 @@ package DateTime::Create 0.001 {
 			return 'DateTime';
 		}
 
-		if ($class->isa('DateTime')) {
+		if ($class and length $class) {
 			return $class;
 		}
 
@@ -228,26 +253,21 @@ package DateTime::Create 0.001 {
 
 =head1 NAME
 
-DateTime::Create - a convenient, "do what I mean" way to create new DateTime
-objects.
+DateTimeX::Create - Extend DateTime by adding a convenient create() method.
+
 
 =head1 SYNOPSIS
 
-	use DateTime::Create; # adds create() method to DateTime
+	use DateTimeX::Create; # adds create() method to DateTime
 	my $dt1 = DateTime->create(2023, 03, 01, 0, 0, 0, 'America/Chicago');
-	my $dt2 = DateTime->create(scalar time);
-	my $dt3 = DateTime->create('1978-07-04 20:18:45');
+	my $dt2 = DateTime->create(time);                  # time since epoch
+	my $dt3 = DateTime->create('1978-07-04 20:18:45'); # parses ISO-like string
 
-Or
-
-	use DateTime::Create ();  # will avoid monkeypatching the DateTime module
-	require DateTime::Create; # also avoids monkeypatching
-	my $dt = DateTime::Create->create(...) 
 
 =head1 DESCRIPTION
 
-This module offers a create() class method that can be exported into the
-DateTime namespace. It may also be used without exporting anything. It
+This module offers a create() class method that can be exported into DateTime
+or another specified module. It may also be used without exporting anything. It
 returns new DateTime objects.
 
 The motivation behind this module is the verbosity of creating DateTime objects:
@@ -271,19 +291,43 @@ passed as either a list, arrayref, an epoch time, or an ISO-style string.
 The most simple use is to call DateTime->create with no arguments which returns
 a DateTime object equivalent to 0000-01-01 00:00:00.
 
-=head1 SUBCLASSING DATETIME
 
-If you normally use your own sublass of DateTime, this method will try to
-return objects of the correct class. In other words,
+=head1 EXPORTING
 
-	package My::DateTime { use parent 'DateTime'; }
-	use DateTime::Create;
-	my $obj = My::DateTime->create(...); # returns a My::DateTime object
+By default this module exports the create() method to the DateTime package.
+You can specify that this module exports its create method to a different
+namspace instead of to DateTime (or not to export anything) by passing
+arguments to its import method via use:
+
+	use DateTimeX::Create (export_to => 'My::DateTime::Class');
+	My::DateTime::Class->create(...); # returns Dat
+
+	use DateTimeX::Create (); # no exports
+	DateTimeX::Create->create(...); # returns DateTime objects
+	DateTimeX::Create::create('My::DateTime', ...) # returns My::DateTime objects
+
+Exporting to multiple different namespaces is best done by calling import
+directly:
+
+	require DateTimeX::Create;
+	DateTimeX->import(export_to => 'My::DateTime::Class');
+	DateTimeX->import(export_to => 'My::Other::DateTime::Class');
+
+Note that this module does NOT export anything to the caller's namespace. The
+following forms will NOT export create() to My::Caller:
+
+	package My::Caller {
+		use DateTimeX::Create;
+		use DateTimeX::Create qw(create);
+	}
+	My::Caller->create(...) # error
+
 
 =head1 PUBLIC METHODS
 
 There is only one method intended for public consumption, which is the
 create() class method. It can be used with three different kinds of arguments.
+
 
 =over 4
 
@@ -315,12 +359,18 @@ missing.
 
 
 	$dt = DateTime->create(2020,  undef); # 2020-01-01T00:00:00
-	$dt = DateTime->create(2020);         # 1970-01-01T00:33:40 (2020 seconds since epoch)
+
+Be careful not to supply just a year in list form, as this is interpreted as
+an epoch time:
+
+	$dt = DateTime->create(2020); # 1970-01-01T00:33:40
+
 
 =item create(number)
 
 An integer or float is interpreted as an epoch time and is passed directly
 to DateTime's from_epoch() class method.
+
 
 =item create(string)
 
@@ -343,6 +393,7 @@ or after year 9999, for example.
 If unsuccessful, the module DateTime::Format::ISO8601 is used (if available)
 to attempt to parse it instead.
 
+
 =back
 
 =head1 DEBUGGING
@@ -351,17 +402,17 @@ The following package globals may assist in debugging.
 
 =over 4
 
-=item $DateTime::Create::looks_like
+=item $DateTimeX::Create::looks_like
 
 What this module thinks the most recent argument type was. Contains one of the
 strings 'empty', 'list', 'arrayref', 'epoch', or 'iso_string'. May be undef.
 
-=item $DateTime::Create::parser_used
+=item $DateTimeX::Create::parser_used
 
 If used to parse an ISO-style string, may be 'internal' or 'external', with
 'external' referring to DateTime::Format::ISO8601;
 
-=item $DateTime::Create::force_parser
+=item $DateTimeX::Create::force_parser
 
 If this variable equals the string 'internal' or 'external', the create() method
 will only attempt to use only the corresponding parser (as described above). The
