@@ -4,11 +4,17 @@ use v5.36;
 use Test::More;
 use Try::Tiny;
 use DateTime;
-use DateTime::Create;
+use DateTimeX::Create;
+
+sub s_to_ns ($s) {
+	$s * 1_000_000_000
+}
+
+sub h_to_sec ($h) {
+	$h * 3600;
+}
 
 my ($dt, $dt0, $dt1);
-
-sub s_to_ns { return $_[0] * 1_000_000_000 }
 
 #################
 # Epoch Parsing #
@@ -100,38 +106,43 @@ ok($dt->nanosecond == 234_000_000,                    'nanosecond is correct');
 
 # string with +02 offset
 ok($dt = DateTime->create('1989-06-05T12:02:59.56+02'),    'create datetime with timezone offset (+02)');
-#is($dt => '1989-06-05T10:02:59',                          'datetime is converted to UTC using offset');
+is($dt => '1989-06-05T12:02:59',                           'datetime is converted to UTC using offset');
+is($dt->offset => h_to_sec(2),                             'offset is correct');
 
 # string with -03 offset
 ok($dt = DateTime->create('1989-06-05T12:02:59.56-03'),    'create datetime with timezone offset (-03)');
-#is($dt => '1989-06-05T15:02:59',                          'datetime is converted to UTC using offset');
+is($dt => '1989-06-05T12:02:59',                           'datetime is converted to UTC using offset');
+is($dt->offset => h_to_sec(-3),                            'offset is correct');
 
 # string with +01:30 offset
 ok($dt = DateTime->create('1989-06-05T12:02:59.56+01:30'), 'create datetime with timezone offset (+01:30)');
-#is($dt => '1989-06-05T10:32:59',                          'datetime is converted to UTC using offset');
+is($dt => '1989-06-05T12:02:59',                           'datetime is converted to UTC using offset');
+is($dt->offset => h_to_sec(1.5),                           'offset is correct');
 
 # string with -02:30 offset
 ok($dt = DateTime->create('1989-06-05T12:02:59.56-02:30'), 'create datetime with timezone offset (-02:30)');
-#is($dt => '1989-06-05T14:32:59',                          'datetime is converted to UTC using offset');
+is($dt => '1989-06-05T12:02:59',                           'datetime is converted to UTC using offset');
+is($dt->offset => h_to_sec(-2.5),                          'offset is correct');
 
 # string with +0130 offset
 ok($dt = DateTime->create('1989-06-05T12:02:59.56+0130'),  'create datetime with timezone offset (+0130)');
-#is($dt => '1989-06-05T10:32:59',                          'datetime is converted to UTC using offset');
+is($dt => '1989-06-05T12:02:59',                           'datetime is converted to UTC using offset');
+is($dt->offset => h_to_sec(1.5),                           'offset is correct');
 
 # string with offset, force internal parser
-$DateTime::Create::force_parser = 'internal';
+$DateTimeX::Create::force_parser = 'internal';
 ok($dt = DateTime->create('1989-06-05T12:02:59.56+02'),    'force internal create with offset +02');
 ok($dt = DateTime->create('1989-06-05T12:02:59.56-05'),    'force internal create with offset -05');
 ok($dt = DateTime->create('1989-06-05T12:02:59.56+02:30'), 'force internal create with offset +02:30');
 ok($dt = DateTime->create('1989-06-05T12:02:59.56-05:30'), 'force internal create with offset -05:30');
-undef $DateTime::Create::force_parser;
+undef $DateTimeX::Create::force_parser;
 
 # string with offset, force external parser
 # Note DateTime::Format::ISO8601 sometimmes requires the separator in the offset
-$DateTime::Create::force_parser = 'external';
+$DateTimeX::Create::force_parser = 'external';
 ok($dt = DateTime->create('1989-06-05T12:02:59.56+02'), 'force external create with + offset');
 ok($dt = DateTime->create('1989-06-05T12:02:59.1-07:00'), 'force external create with - offset ');
-undef $DateTime::Create::force_parser;
+undef $DateTimeX::Create::force_parser;
 
 # this string is only handled by DateTime::Format::ISO8601 module
 ok($dt = DateTime->create('20230302T060226Z'),             'create datetime from ISO string that can only be parsed externally');

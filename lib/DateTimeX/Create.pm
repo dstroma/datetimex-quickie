@@ -296,15 +296,17 @@ a DateTime object equivalent to 0000-01-01 00:00:00.
 
 By default this module exports the create() method to the DateTime package.
 You can specify that this module exports its create method to a different
-namspace instead of to DateTime (or not to export anything) by passing
-arguments to its import method via use:
+namspace instead of to DateTime by passing arguments to its import method via
+use:
 
-	use DateTimeX::Create (export_to => 'My::DateTime::Class');
-	My::DateTime::Class->create(...); # returns Dat
+	use DateTimeX::Create (export_to => 'My::DateTime');
+	My::DateTime->create(...);                     # returns My::DateTime object
 
-	use DateTimeX::Create (); # no exports
-	DateTimeX::Create->create(...); # returns DateTime objects
-	DateTimeX::Create::create('My::DateTime', ...) # returns My::DateTime objects
+Or you can choose to not export anything:
+
+	use DateTimeX::Create ();                      # export nothing
+	DateTimeX::Create->create(...);                # returns DateTime object
+	DateTimeX::Create::create('My::DateTime', ...) # returns My::DateTime object
 
 Exporting to multiple different namespaces is best done by calling import
 directly:
@@ -313,14 +315,16 @@ directly:
 	DateTimeX->import(export_to => 'My::DateTime::Class');
 	DateTimeX->import(export_to => 'My::Other::DateTime::Class');
 
-Note that this module does NOT export anything to the caller's namespace. The
-following forms will NOT export create() to My::Caller:
+Note that this module does NOT export anything to the caller's namespace. In
+other words the following will not work:
+
+	use DateTimeX::Create qw(create); # error
 
 	package My::Caller {
 		use DateTimeX::Create;
-		use DateTimeX::Create qw(create);
+		create(...)                   # error
 	}
-	My::Caller->create(...) # error
+	My::Caller->create(...)           # error
 
 
 =head1 PUBLIC METHODS
