@@ -270,6 +270,15 @@ This module offers a create() class method that can be exported into DateTime
 or another specified module. It may also be used without exporting anything. It
 returns new DateTime objects.
 
+This module takes a "do what I mean" approach and attempts to parse datetimes
+passed as either a list, arrayref, an epoch time, or an ISO-style string.
+
+The most simple use is to call DateTime->create with no arguments which returns
+a DateTime object equivalent to 0000-01-01 00:00:00.
+
+
+=head1 JUSTIFICATION
+
 The motivation behind this module is the verbosity of creating DateTime objects:
 
 	my $datetime = DateTime->new(
@@ -285,11 +294,8 @@ That is a lot of typing just to create one datetime object. Since the DateTime
 module does not parse date strings, users are instead directed to CPAN to
 choose from a bewildering array of other modules to do this for them.
 
-This module takes a "do what I mean" approach and attempts to parse datetimes
-passed as either a list, arrayref, an epoch time, or an ISO-style string.
-
-The most simple use is to call DateTime->create with no arguments which returns
-a DateTime object equivalent to 0000-01-01 00:00:00.
+There are some other similar modules on CPAN such as DateTimeX::Auto,
+DateTimeX::Easy, and DateTime::Format::DateParse. 
 
 
 =head1 EXPORTING

@@ -15,6 +15,14 @@ This module offers a create() class method that can be exported into DateTime
 or another specified module. It may also be used without exporting anything. It
 returns new DateTime objects.
 
+This module takes a "do what I mean" approach and attempts to parse datetimes
+passed as either a list, arrayref, an epoch time, or an ISO-style string.
+
+The most simple use is to call DateTime->create with no arguments which returns
+a DateTime object equivalent to 0000-01-01 00:00:00.
+
+# JUSTIFICATION
+
 The motivation behind this module is the verbosity of creating DateTime objects:
 
         my $datetime = DateTime->new(
@@ -30,25 +38,24 @@ That is a lot of typing just to create one datetime object. Since the DateTime
 module does not parse date strings, users are instead directed to CPAN to
 choose from a bewildering array of other modules to do this for them.
 
-This module takes a "do what I mean" approach and attempts to parse datetimes
-passed as either a list, arrayref, an epoch time, or an ISO-style string.
-
-The most simple use is to call DateTime->create with no arguments which returns
-a DateTime object equivalent to 0000-01-01 00:00:00.
+There are some other similar modules on CPAN such as DateTimeX::Auto,
+DateTimeX::Easy, and DateTime::Format::DateParse. 
 
 # EXPORTING
 
 By default this module exports the create() method to the DateTime package.
 You can specify that this module exports its create method to a different
-namspace instead of to DateTime (or not to export anything) by passing
-arguments to its import method via use:
+namspace instead of to DateTime by passing arguments to its import method via
+use:
 
-        use DateTimeX::Create (export_to => 'My::DateTime::Class');
-        My::DateTime::Class->create(...); # returns Dat
+        use DateTimeX::Create (export_to => 'My::DateTime');
+        My::DateTime->create(...);                     # returns My::DateTime object
 
-        use DateTimeX::Create (); # no exports
-        DateTimeX::Create->create(...); # returns DateTime objects
-        DateTimeX::Create::create('My::DateTime', ...) # returns My::DateTime objects
+Or you can choose to not export anything:
+
+        use DateTimeX::Create ();                      # export nothing
+        DateTimeX::Create->create(...);                # returns DateTime object
+        DateTimeX::Create::create('My::DateTime', ...) # returns My::DateTime object
 
 Exporting to multiple different namespaces is best done by calling import
 directly:
@@ -57,14 +64,16 @@ directly:
         DateTimeX->import(export_to => 'My::DateTime::Class');
         DateTimeX->import(export_to => 'My::Other::DateTime::Class');
 
-Note that this module does NOT export anything to the caller's namespace. The
-following forms will NOT export create() to My::Caller:
+Note that this module does NOT export anything to the caller's namespace. In
+other words the following will not work:
+
+        use DateTimeX::Create qw(create); # error
 
         package My::Caller {
                 use DateTimeX::Create;
-                use DateTimeX::Create qw(create);
+                create(...)                   # error
         }
-        My::Caller->create(...) # error
+        My::Caller->create(...)           # error
 
 # PUBLIC METHODS
 
