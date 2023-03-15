@@ -4,10 +4,16 @@ DateTimeX::Create - Extend DateTime by adding a convenient create() method.
 
 # SYNOPSIS
 
-        use DateTimeX::Create; # adds create() method to DateTime
+        use DateTimeX::Create;
+
+        # Create from list
         my $dt1 = DateTime->create(2023, 03, 01, 0, 0, 0, 'America/Chicago');
-        my $dt2 = DateTime->create(time);                  # time since epoch
-        my $dt3 = DateTime->create('1978-07-04 20:18:45'); # parses ISO-like string
+
+        # Create from epoch time
+        my $dt2 = DateTime->create(time);
+
+        # Create from string
+        my $dt3 = DateTime->create('1978-07-04 20:18:45');
 
 # DESCRIPTION
 
@@ -16,7 +22,7 @@ or another specified module. It may also be used without exporting anything. It
 returns new DateTime objects.
 
 This module takes a "do what I mean" approach and attempts to parse datetimes
-passed as either a list, arrayref, an epoch time, or an ISO-style string.
+passed as either a list, arrayref, an epoch time, or an ISO8601-like string.
 
 The most simple use is to call DateTime->create with no arguments which returns
 a DateTime object equivalent to 0000-01-01 00:00:00.
@@ -134,6 +140,9 @@ create() class method. It can be used with three different kinds of arguments.
             YYYY-MM-DD HH:MM:SS[+-]NN
             YYYY-MM-DD HH:MM:SS[+-]NN:NN
 
+    The returned DateTime will have its time\_zone set to the floating timezone, or
+    offset-only timezone, as appropriate.
+
     The internal parser cannot handle unusual cases, such as dates before year 0000
     or after year 9999, for example.
 
@@ -164,9 +173,7 @@ The following package globals may assist in debugging.
 
 - perl v5.36 or greater
 
-    This module uses Perl's new native subroutine signatures. While this module is
-    a simple one that could have easily been written for a (much) older version, of
-    perl, I believe it is in the community's interest to encourage upgrading.
+    This is primarily for native subroutine signatures. 
 
 - Regexp::Common
 - DateTime
