@@ -114,20 +114,21 @@ package DateTimeX::Create 0.001 {
 			my %capture;
 			$capture{$datetime_regex_capture_labels[$_]} = $capture[$_] for 0..$#datetime_regex_capture_labels;
 
-			my $nanosecond;
+			my $second     = $capture{'second'};
+			my $nanosecond = 0;
 			if ($capture{'second_fraction'}) {
-				$capture{'second_fraction'} =~ s/^,/\./; # relace comma with dot
-				$nanosecond = $capture{'second_fraction'} * 1e9;
+				my $frac = substr($capture{'second_fraction'}, 1); # eliminate decimal point
+				($second, $nanosecond) = seconds_to_seconds_and_nanoseconds($second . '.' . $frac);
 			}
 
 			my $obj = $class->new(
-				year   => $capture{'year'},
-				month  => $capture{'month'},
-				day    => $capture{'day'},
-				hour   => $capture{'hour'},
-				minute => $capture{'minute'},
-				second => $capture{'second'},
-				$nanosecond       ? ( nanosecond => $nanosecond ) : (),
+				year       => $capture{'year'},
+				month      => $capture{'month'},
+				day        => $capture{'day'},
+				hour       => $capture{'hour'},
+				minute     => $capture{'minute'},
+				second     => $second,
+				nanosecond => $nanosecond,
 				$capture{'zulu'}  ? ( time_zone  => 'UTC' ) : (),
 			);
 
