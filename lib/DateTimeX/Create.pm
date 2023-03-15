@@ -322,16 +322,20 @@ choose from a bewildering array of other modules to do this for them.
 There are some other similar modules on CPAN such as DateTimeX::Auto,
 DateTimeX::Easy, and DateTime::Format::DateParse. 
 
+Unlike these other modules, this one can be used on subclasses of DateTime
+(or even a completely different class with a DateTime-like interface) and
+will return objects already blessed into the correct class. See the EXPORTING
+section below for more information on that.
+
 
 =head1 EXPORTING
 
 By default this module exports the create() method to the DateTime package.
 You can specify that this module exports its create method to a different
-namspace instead of to DateTime by passing arguments to its import method via
-use:
+namspace, and objects returned will be instances of the correct class:
 
-	use DateTimeX::Create (export_to => 'My::DateTime');
-	My::DateTime->create(...);                     # returns My::DateTime object
+	use DateTimeX::Create (export_to => 'DateTime::Moonpig');
+	DateTime::Moonpig->create(...); # returns DateTime::Moonpig object
 
 Or you can choose to not export anything:
 
@@ -391,8 +395,6 @@ missing.
 	$dt = DateTime->create;               # 0000-01-01T00:00:00
 	$dt = DateTime->create([]);           # same
 	$dt = DateTime->create(undef, undef); # same
-
-
 	$dt = DateTime->create(2020,  undef); # 2020-01-01T00:00:00
 
 Be careful not to supply just a year in list form, as this is interpreted as
@@ -413,7 +415,7 @@ If the argument to create() is neither a list nor a number, it is assumed to
 be an ISO8601 style date string.
 
 This module will try to parse strings it thinks are ISO 8601 datetimes using
-its own internal parser (regex). It will match any forms like the following
+its own internal parsing regex. It will match any forms like the following
 (the separator between the date and time may be a space or the letter T):
 
 	YYYY-MM-DD HH:MM:SS
@@ -473,6 +475,23 @@ This is primarily for native subroutine signatures.
 =item Try::Tiny
 
 =item Test::More for the test suite
+
+=back
+
+=head1 SEE ALSO
+
+=over 4
+
+=item L<DateTime::Auto>
+
+=item L<DateTime::Easy>
+
+=item L<DateTime::Format::DateParse>
+
+=item L<DateTime::Moonpig>
+
+DateTime::Moonpig is a wrapper around DateTime that prevents accidentally
+mutating existing objects, which can result at action-at-a-distance bugs.
 
 =back
 
