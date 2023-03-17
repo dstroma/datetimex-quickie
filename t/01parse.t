@@ -94,7 +94,7 @@ ok($dt eq "0000-01-01T00:00:00",                    '...new object is correct');
 
 # string, simple
 ok($dt = DateTime->create('1980-10-10 01:02:03'),     'create datetime from iso string (plain)');
-ok($dt eq '1980-10-10T01:02:03',                      'new object is correct');
+is($dt => '1980-10-10T01:02:03',                      'new object is correct');
 
 # string, fractional seconds
 ok($dt = DateTime->create('1990-11-11 02:03:04.5'),   'create datetime with fractional seconds');

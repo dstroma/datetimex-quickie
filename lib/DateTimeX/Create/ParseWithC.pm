@@ -1,6 +1,6 @@
-#!perl
-use v5.36;
+package DateTimeX::Create::ParseWithC 0.001;
 
+use v5.36;
 use Inline C => <<'END_OF_C_CODE';
  
 #include <string.h>
@@ -60,6 +60,7 @@ bool parse_date (char dstring[37], struct DateStruct *dstruct) {
 		/* Set defaults */
 		dstruct->is_utc = false;
 		dstruct->offset = 0;
+		dstruct->nanosecond = 0;
 
 		/* Year */
 		char year[5]    = {dstring[0], dstring[1], dstring[2], dstring[3], '\0'};
@@ -133,13 +134,18 @@ bool parse_date (char dstring[37], struct DateStruct *dstruct) {
 		/* Time zone */
 		if (dstring[indexOfLastDigit + 1] == 'Z' || dstring[indexOfLastDigit + 1] == 'z') {
 			dstruct->is_utc    = true;
-
-			/* We are done, there can't be anything after Z */
-			return true;
+			indexOfLastDigit++;
+			/* above we cheat and advance 1 digit, this is to catch an invalid
+			   string in which both Z and an offset are presented
+			*/
 		}
 
 		/* Offset */
 		if (dstring[indexOfLastDigit + 1] == '+' || dstring[indexOfLastDigit + 1] == '-') {
+			if (dstruct->is_utc) {
+				/* Cannot have both an offset and a timezone of Z */
+				return false;
+			}
 			char offset_direction = dstring[indexOfLastDigit + 1];
 			int i = indexOfLastDigit + 2;
 
@@ -224,6 +230,12 @@ void c_parse_datetime_string (char* input_date_string) {
 }
 
 END_OF_C_CODE
+
+*parse = \&c_parse_datetime_string;
+
+1;
+
+__END__
 
 use Benchmark qw/cmpthese/;
 use DateTimeX::Create;

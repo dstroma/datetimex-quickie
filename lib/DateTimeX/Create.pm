@@ -5,12 +5,17 @@ package DateTimeX::Create 0.001 {
 	use DateTime ();
 	use Regexp::Common 'number';
 	use Try::Tiny;
+	use DateTimeX::Create::ParseWithC ();
 
 	our $looks_like;
 	our $force_parser;
 	our $parser_used;
 
-	our ($datetime_regex, @datetime_regex_capture_labels) = prepare_regex_and_labels();
+	my $number_regex;
+	my $iso_regex;
+	my @iso_regex_capture_labels;
+
+	prepare_regexes();
 
 	sub new {
 		# This module is not meant to be its own class!
@@ -18,33 +23,34 @@ package DateTimeX::Create 0.001 {
 	}
 
 	sub create ($maybe_class, @params) {
-		my $class = coerce_class($maybe_class);
+		my $class  = coerce_class($maybe_class);
+		my $param  = $params[0];
+		my $pcount = scalar @params;
 
 		# Reset global debugging variables
 		undef $looks_like;
 		undef $parser_used;
 
 		# Is it empty?
-		if (@params == 0) {
+		if ($pcount == 0) {
 			$looks_like = 'empty';
 			return new_from_empty($class);
 		}
 
 		# Is it a list?
-		if (@params > 1) {
+		elsif ($pcount > 1) {
 			$looks_like = 'list';
 			return new_from_list($class, @params);
 		}
 
 		# Is it an arrayref?
-		my $param = $params[0];
-		if (ref $param and ref $param eq 'ARRAY') {
+		elsif (ref $param and ref $param eq 'ARRAY') {
 			$looks_like = 'arrayref';
 			return new_from_list($class, @$param);
 		}
 
 		# Is it an integer or real number (epoch)?
-		if ($param =~ m/^$RE{num}{int}$/ or $param =~ m/^$RE{num}{real}$/) {
+		elsif ($param =~ $number_regex) {
 			$looks_like = 'epoch';
 			return new_from_epoch($class, $param);
 		}
@@ -91,7 +97,15 @@ package DateTimeX::Create 0.001 {
 		);
 	}
 
-	sub new_from_c ($class, $year, $month, $day, $hour, $minute, $second, $nanosecond, $utc, $offset) {
+	sub new_from_c ($class, $string) {
+		return undef unless my @result = DateTimeX::Create::ParseWithC::parse($string);
+		#warn "PARSING WITH C\n";
+		my (
+			$year, $month, $day, $hour, $minute, $second, $nanosecond, $utc, $offset
+		) = @result;
+		#use Data::Dumper;
+		#warn Dumper { 'result from c' => \@result };
+
 		my $time_zone = $utc ? 'UTC' : undef;
 		if (!$time_zone and $offset) {
 			$time_zone = bless {
@@ -113,15 +127,15 @@ package DateTimeX::Create 0.001 {
 	}
 
 	sub new_from_iso_string ($class, $string) {
+		my $dt;
 		if ($force_parser) {
 			return new_from_iso_string_internal($class, $string) if $force_parser eq 'internal';
 			return new_from_iso_string_external($class, $string) if $force_parser eq 'external';
-		}
-			
-		if (my $dt = new_from_iso_string_internal($class, $string)) {
+		} elsif ($dt = new_from_c($class, $string)) {
 			return $dt;
-		}
-		if (my $dt = new_from_iso_string_external($class, $string)) {
+		} elsif ($dt = new_from_iso_string_internal($class, $string)) {
+			return $dt;
+		} elsif ($dt = new_from_iso_string_external($class, $string)) {
 			return $dt;
 		}
 
@@ -129,11 +143,11 @@ package DateTimeX::Create 0.001 {
 	}
 
 	sub new_from_iso_string_internal ($class, $string) {
-		if (my (@capture) = $string =~ m/$datetime_regex/) {
+		if (my (@capture) = $string =~ m/$iso_regex/) {
 			$parser_used = 'internal';
 
 			my %capture;
-			$capture{$datetime_regex_capture_labels[$_]} = $capture[$_] for 0..$#datetime_regex_capture_labels;
+			$capture{$iso_regex_capture_labels[$_]} = $capture[$_] for 0..$#iso_regex_capture_labels;
 
 			my $second     = $capture{'second'};
 			my $nanosecond = 0;
@@ -281,7 +295,16 @@ package DateTimeX::Create 0.001 {
 		return 'DateTime';
 	}
 
-	sub prepare_regex_and_labels () {
+	sub prepare_regexes () {
+		$number_regex = prepare_number_regex();
+		($iso_regex, @iso_regex_capture_labels) = prepare_iso_regex_and_labels();
+	}
+
+	sub prepare_number_regex () {
+		return qr/^[+-]?\d+(\.\d+)?$/;
+	}
+
+	sub prepare_iso_regex_and_labels () {
 		my $date         = '(\d\d\d\d)-(\d\d)-(\d\d)';
 		my $separator    = '[T\s]';
 		my $time         = '(\d\d):(\d\d):(\d\d)([\.,]\d+)?';
