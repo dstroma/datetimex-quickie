@@ -3,7 +3,6 @@ use v5.36;
 
 use Inline C => <<'END_OF_C_CODE';
  
-#include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -18,13 +17,11 @@ struct DateStruct {
 	long  nanosecond;
 	bool  is_utc;
 	int   offset;
-	bool  error;
-	char  error_msg[];
 };
 
 
 bool is_digit (char c) {
-	if (c == '0' || c == '1' || c == '2' || c == '3' || c == '4' || c == '5' || c == '6' || c == '7' || c == '8' || c == '9') {
+	if (c >= '0' && c <= '9') {
 		return true;
 	} else {
 		return false;
@@ -56,10 +53,14 @@ bool parse_date (char dstring[37], struct DateStruct *dstruct) {
 		is_digit(dstring[14]) &&	
 		is_digit(dstring[15]) &&	
 		dstring[16] == ':' &&
-		is_digit(dstring[17]) &&	
+		is_digit(dstring[17]) && 
 		is_digit(dstring[18])
 	)
 	{
+		/* Set defaults */
+		dstruct->is_utc = false;
+		dstruct->offset = 0;
+
 		/* Year */
 		char year[5]    = {dstring[0], dstring[1], dstring[2], dstring[3], '\0'};
 		dstruct->year   = atoi(year);
@@ -131,7 +132,7 @@ bool parse_date (char dstring[37], struct DateStruct *dstruct) {
 
 		/* Time zone */
 		if (dstring[indexOfLastDigit + 1] == 'Z' || dstring[indexOfLastDigit + 1] == 'z') {
-			dstruct->is_utc = true;
+			dstruct->is_utc    = true;
 
 			/* We are done, there can't be anything after Z */
 			return true;
@@ -140,7 +141,6 @@ bool parse_date (char dstring[37], struct DateStruct *dstruct) {
 		/* Offset */
 		if (dstring[indexOfLastDigit + 1] == '+' || dstring[indexOfLastDigit + 1] == '-') {
 			char offset_direction = dstring[indexOfLastDigit + 1];
-			// printf("DEBUG: Found offset %c\n", offset_direction);
 			int i = indexOfLastDigit + 2;
 
 			/* Hour only (single digit) */
@@ -187,7 +187,7 @@ bool parse_date (char dstring[37], struct DateStruct *dstruct) {
 	}
 }
 
-void try_it_out (char* input_date_string) {
+void c_parse_datetime_string (char* input_date_string) {
 	struct DateStruct result_datetime;
 	bool success;
 	char dateStr[37] = "2020-02-03T08:30:03.14152987647-0230";
@@ -215,8 +215,12 @@ void try_it_out (char* input_date_string) {
 		Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.minute)));
 		Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.second)));
 		Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.nanosecond)));
+		Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.is_utc)));
+		if (result_datetime.offset) {
+			Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.offset)));
+		}
 		Inline_Stack_Done;
-	}	
+	}
 }
 
 END_OF_C_CODE
@@ -225,15 +229,21 @@ use Benchmark qw/cmpthese/;
 use DateTimeX::Create;
 
 my $pure_perl = sub {
-	my $dt = DateTime->create('2020-02-03T07:30:03.14152987647-0230');
+	my $dt = DateTimeX::Create::new_from_iso_string('DateTime' => '2020-02-03T07:30:03.14152987647-0230');
 };
 my $inline_c  = sub {
-	my $dt = DateTime->create(try_it_out('2020-02-03T07:30:03.14152987647-0230'));
+	my $dt = DateTimeX::Create::new_from_c('DateTime' => c_parse_datetime_string('2020-02-03T07:30:03.14152987647-0230'));
 };
 
-say $pure_perl->();
-say $inline_c->();
-
+say "Test:";
+say "	Pure Perl: " . $pure_perl->();
+say "		Timezone: " . $pure_perl->()->time_zone;
+say "		Offset  : " . $pure_perl->()->offset;
+say "	Inline C:  " . $inline_c->();
+say "		Timezone: " . $inline_c->()->time_zone;
+say "		Offset  : " . $inline_c->()->offset;
+say '';
+sleep 2;
 cmpthese(20_000, {
 	pure_perl => $pure_perl,
 	inline_c  => $inline_c,

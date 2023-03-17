@@ -91,6 +91,27 @@ package DateTimeX::Create 0.001 {
 		);
 	}
 
+	sub new_from_c ($class, $year, $month, $day, $hour, $minute, $second, $nanosecond, $utc, $offset) {
+		my $time_zone = $utc ? 'UTC' : undef;
+		if (!$time_zone and $offset) {
+			$time_zone = bless {
+				name   => DateTime::TimeZone::offset_as_string($offset),
+				offset => $offset,
+			}, 'DateTime::TimeZone::OffsetOnly';
+		}
+		return $class->new(
+			year       => $year       // 0,
+			month      => $month      || 1,
+			day        => $day        || 1,
+			hour       => $hour       // 0,
+			minute     => $minute     // 0,
+			second     => $second     // 0,
+			nanosecond => $nanosecond // 0,
+			$time_zone ? (time_zone  => $time_zone) : (),
+		);
+
+	}
+
 	sub new_from_iso_string ($class, $string) {
 		if ($force_parser) {
 			return new_from_iso_string_internal($class, $string) if $force_parser eq 'internal';
@@ -183,10 +204,18 @@ package DateTimeX::Create 0.001 {
 	}
 
 	sub is_valid_time_zone_name ($name) {
+		if (ref $name and $name->isa('DateTime::TimeZone')) {
+			return 1;
+		}
 		# All tz names have at least 2 letters
-		if ($name and $name =~ m/[a-zA-Z]{2}/ ) {
-			require DateTime::TimeZone;
-			return DateTime::TimeZone->is_valid_name($name);
+		if ($name and length $name > 1) {
+			if (length $name == 6 and (substr($name, 0, 1) eq '+' or substr($name, 0, 1) eq '-')) {
+				return 1;
+			}
+			if ($name =~ m/[a-zA-Z]{2}/ ) {
+				require DateTime::TimeZone;
+				return DateTime::TimeZone->is_valid_name($name);
+			}
 		}
 		return undef;
 	}
