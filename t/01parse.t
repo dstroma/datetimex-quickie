@@ -98,10 +98,17 @@ is($dt => '1980-10-10T01:02:03',                      'new object is correct');
 
 # string, fractional seconds
 ok($dt = DateTime->create('1990-11-11 02:03:04.5'),   'create datetime with fractional seconds');
-ok($dt->nanosecond == 500_000_000,                    'nanosecond is correct');
+is($dt->nanosecond => 500_000_000,                    'nanosecond is correct');
 
 ok($dt = DateTime->create('1990-11-11 02:03:04.234'), 'create datetime with hires seconds');
-ok($dt->nanosecond == 234_000_000,                    'nanosecond is correct');
+is($dt->nanosecond => 234_000_000,                    'nanosecond is correct');
+
+# string, fractional seconds with rounding
+ok($dt = DateTime->create('1990-11-11 02:03:04.111222333999'), 'create datetime with overflowing nano (for round up)');
+is($dt->nanosecond => 111_222_334,                             'nanosecond is rounded up correctly');
+
+ok($dt = DateTime->create('1990-11-11 02:03:04.999888777111'), 'create datetime with overflowing nano (for round down)');
+is($dt->nanosecond => 999_888_777,                             'nanosecond is rounded down correctly');
 
 
 # string with +02 offset
