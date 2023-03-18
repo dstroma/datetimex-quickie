@@ -6,9 +6,10 @@ use DateTime::Format::ISO8601;
 use Benchmark 'cmpthese';
 use constant ITERATIONS => 30_000;
 
-my $dtstring = '1957-12-31T05:06:07+0230';
+my $dtstring = '1957-12-31T05:06:07.83739+0230';
 
 my @bench1 = (ITERATIONS, {
+  'string_inline_c' => sub { my $dt = DateTimeX::Create::new_from_c('DateTime', $dtstring); },
   'string_internal' => sub { my $dt = DateTimeX::Create::new_from_iso_string_internal('DateTime', $dtstring); },
   'string_external' => sub { my $dt = DateTimeX::Create::new_from_iso_string_external('DateTime', $dtstring); },
   'string_auto'     => sub { my $dt = DateTimeX::Create::new_from_iso_string('DateTime', $dtstring); },
@@ -29,10 +30,10 @@ my @bench3 = (ITERATIONS, {
 );
 
 say "\nBenchmark 1: String parsing";
-#cmpthese(@bench1);
+cmpthese(@bench1);
 
 say "\nBenchmark 2: empty list/empty arrayref";
-#cmpthese(@bench2);
+cmpthese(@bench2);
 
 say "\nBenchmark 3: list v. string";
 cmpthese(@bench3);

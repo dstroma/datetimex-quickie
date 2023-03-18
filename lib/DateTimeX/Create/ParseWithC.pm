@@ -28,12 +28,49 @@ bool is_digit (char c) {
 	}
 }
 
-bool parse_date (char dstring[37], struct DateStruct *dstruct) {
+void replace_utf8_minuses_with_ascii (char* pstring) {
+	int pstring_length_bytes = strlen(pstring);
+	for (int i = 0; i <= pstring_length_bytes - 3; i++) {
+		if (
+			pstring[i  ] ==  -30 &&
+			pstring[i+1] == -120 &&
+			pstring[i+2] == -110
+		) {
+			/* Replace the first byte of the UTF8 sequence with an ASCII hyphen */
+			pstring[i] = '-';
+
+			/* Move everything else left two bytes */
+			for (int j = i; j <= pstring_length_bytes; j=j+2) {
+				if (j+3 < pstring_length_bytes) {
+					pstring[j+1] = pstring[j+3];
+				} else if (j+1 < pstring_length_bytes) {
+					pstring[j+1] = '\0';
+				}
+
+				if (j+4 < pstring_length_bytes) {
+					pstring[j+2] = pstring[j+4];
+				} else if (j+2 < pstring_length_bytes) {
+					pstring[j+2] = '\0';
+				}
+			}
+			pstring_length_bytes = pstring_length_bytes - 2;
+		}
+	}
+}
+
+bool parse_date (char* dstring, struct DateStruct *dstruct) {
 	char frac_seconds[11] = "0.000000000";
 	char nanoseconds[8];
 
 	double dbl_nano;
 	double dbl_fsec;
+
+	replace_utf8_minuses_with_ascii(dstring);
+
+	int dstring_length_bytes = strlen(dstring);
+	if (dstring_length_bytes > 64) {
+		return false;
+	}
 
 	if (
 		is_digit(dstring[0]) &&
@@ -194,38 +231,33 @@ bool parse_date (char dstring[37], struct DateStruct *dstruct) {
 }
 
 void c_parse_datetime_string (char* input_date_string) {
-	struct DateStruct result_datetime;
-	bool success;
-	char dateStr[37] = "2020-02-03T08:30:03.14152987647-0230";
+	if (strlen(input_date_string) <= 64) {
+		bool                success;
+		struct DateStruct   result_datetime;
+		char                input_date_string_copy[64];
 
-	/* Copy input to dateStr */
-	/*
-	printf("The length of the input string is %i\n", strlen(input_date_string));
-	printf("The input string is %s\n", input_date_string);
-	if (input_date_string[35] == '\0') {
-		printf("Found null terminator at index 35.\n");
-	}
-	if (input_date_string[37] == '\0') {
-		printf("Found null terminator at index 37.\n");
-	}
-	*/
+		/* Copy string and convert UTF minuses to ASCII hypens */
+		strcpy(input_date_string_copy, input_date_string);
+		replace_utf8_minuses_with_ascii(input_date_string_copy);
 
-	success = parse_date(input_date_string, &result_datetime);
-	if (success) {
-		Inline_Stack_Vars;
-		Inline_Stack_Reset;
-		Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.year)));
-		Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.month)));
-		Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.day)));
-		Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.hour)));
-		Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.minute)));
-		Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.second)));
-		Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.nanosecond)));
-		Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.is_utc)));
-		if (result_datetime.offset) {
-			Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.offset)));
+		success = parse_date(input_date_string_copy, &result_datetime);
+
+		if (success) {
+			Inline_Stack_Vars;
+			Inline_Stack_Reset;
+			Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.year)));
+			Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.month)));
+			Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.day)));
+			Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.hour)));
+			Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.minute)));
+			Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.second)));
+			Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.nanosecond)));
+			Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.is_utc)));
+			if (result_datetime.offset) {
+				Inline_Stack_Push(sv_2mortal(newSViv(result_datetime.offset)));
+			}
+			Inline_Stack_Done;
 		}
-		Inline_Stack_Done;
 	}
 }
 
