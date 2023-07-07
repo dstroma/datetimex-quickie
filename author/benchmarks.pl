@@ -59,6 +59,8 @@ sub iso_parse {
 	  'dt::f::dp' => sub { $dt = DateTime::Format::DateParse->parse_datetime($_) for @strings; },
 	  '::iso8601' => sub { $dt = DateTime::Format::ISO8601->parse_datetime($_)   for @strings; },
 	  'x::create' => sub { $dt = DateTime->create($_)  for @strings; },
+	  'x::create internal parser' => sub { $dt = DateTimeX::Create::new_from_iso_string_internal('DateTime', $_) for @strings; },
+	  'x::create external parser' => sub { $dt = DateTimeX::Create::new_from_iso_string_external('DateTime', $_) for @strings; },
 	  }
 	);
 

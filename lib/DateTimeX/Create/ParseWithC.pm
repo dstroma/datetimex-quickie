@@ -7,6 +7,9 @@ use Inline C => <<'END_OF_C_CODE';
 #include <stdbool.h>
 #include <stdlib.h>
 
+#define   MAXLENGTH   64
+
+
 struct DateStruct {
 	short year;
 	short month;
@@ -68,7 +71,7 @@ bool parse_date (char* dstring, struct DateStruct *dstruct) {
 	replace_utf8_minuses_with_ascii(dstring);
 
 	int dstring_length_bytes = strlen(dstring);
-	if (dstring_length_bytes > 64) {
+	if (dstring_length_bytes > MAXLENGTH - 1) {
 		return false;
 	}
 
@@ -231,10 +234,10 @@ bool parse_date (char* dstring, struct DateStruct *dstruct) {
 }
 
 void c_parse_datetime_string (char* input_date_string) {
-	if (strlen(input_date_string) <= 64) {
+	if (strlen(input_date_string) <= MAXLENGTH - 1) {
 		bool                success;
 		struct DateStruct   result_datetime;
-		char                input_date_string_copy[64];
+		char                input_date_string_copy[MAXLENGTH];
 
 		/* Copy string and convert UTF minuses to ASCII hypens */
 		strcpy(input_date_string_copy, input_date_string);
