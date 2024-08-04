@@ -9,7 +9,6 @@ package DateTimeX::Create 0.001 {
 	our $looks_like;
 	our $force_parser;
 	our $parser_used;
-
 	our ($datetime_regex, @datetime_regex_capture_labels) = prepare_regex_and_labels();
 
 	sub new {
@@ -160,17 +159,14 @@ package DateTimeX::Create 0.001 {
 		try {
 			require DateTime::Format::ISO8601;
 			$dt = DateTime::Format::ISO8601->parse_datetime($string);
-			unless (ref $dt eq $class) {
-				bless $dt, $class;
-			}
+			bless $dt, $class unless ref $dt eq $class;
 		};
 
 		if ($dt) {
 			$parser_used = 'external';
 			return $dt;
-		} else {
-			return undef;
 		}
+		return undef;
 	}
 
 	sub new_from_epoch ($class, $epoch) {
@@ -241,15 +237,9 @@ package DateTimeX::Create 0.001 {
 		# We want to use the correct class if used on a subclass of DateTime
 		# If class is the package name of this module, we change it to DateTime
 		# because this module does not subclass DateTime
-		if ($class eq __PACKAGE__) {
-			return 'DateTime';
-		}
-
-		if ($class and length $class) {
-			return $class;
-		}
-
-		return 'DateTime';
+		return 'DateTime' if $class eq __PACKAGE__;
+		return $class     if $class and length $class;
+		return 'Datetime';
 	}
 
 	sub prepare_regex_and_labels () {
