@@ -3,13 +3,13 @@ package DateTimeX::Create 0.001 {
 	use v5.36;
 	use Carp;
 	use DateTime ();
-	use Regexp::Common 'number';
 	use Try::Tiny;
 
 	our $looks_like;
-	our $force_parser;
 	our $parser_used;
+	our $force_parser;
 	our ($datetime_regex, @datetime_regex_capture_labels) = prepare_regex_and_labels();
+	our $number_regex = qr/^[+-]?\d+(\.\d+)?$/;
 
 	sub new {
 		# This module is not meant to be its own class!
@@ -30,33 +30,26 @@ package DateTimeX::Create 0.001 {
 		}
 
 		# Is it a list?
-		if (@params > 1) {
+		elsif (@params > 1) {
 			$looks_like = 'list';
 			return new_from_list($class, @params);
 		}
 
 		# Is it an arrayref?
-		my $param = $params[0];
-		if (ref $param and ref $param eq 'ARRAY') {
+		elsif (ref $params[0] and ref $params[0] eq 'ARRAY') {
 			$looks_like = 'arrayref';
-			return new_from_list($class, @$param);
+			return new_from_list($class, @{$params[0]});
 		}
 
 		# Is it an integer or real number (epoch)?
-		if ($param =~ m/^$RE{num}{int}$/ or $param =~ m/^$RE{num}{real}$/) {
+		elsif ($params[0] =~ $number_regex) {
 			$looks_like = 'epoch';
-			return new_from_epoch($class, $param);
+			return new_from_epoch($class, $params[0]);
 		}
 
 		# If not a list, integer, or real, then it must be ISO datetime string
 		$looks_like = 'iso_string';
-		return new_from_iso_string($class, $param);
-
-		# Doesn't look like any of the above
-		#croak(
-		#	'Argument(s) to DateTimeX::Create->create do not resemble a supported pattern; ' .
-		#	'expected datetime string, epoch number, or list'
-		#);
+		return new_from_iso_string($class, $params[0]);
 	}
 
 	sub new_from_empty ($class) {
@@ -103,7 +96,7 @@ package DateTimeX::Create 0.001 {
 			return $dt;
 		}
 
-		croak "DateTimeX::Create::create is unable to parse datetime string $string";
+		croak qq{Unable to parse ISO-like datetime string \"$string\"};
 	}
 
 	sub new_from_iso_string_internal ($class, $string) {
@@ -210,27 +203,24 @@ package DateTimeX::Create 0.001 {
 			'	use DateTimeX::Create (); # no export'.
 			'	use DateTimeX::Create (export_to => "My::Module"); # export to specified module';
 
+		# Determine where to export
 		my $export_to = 'DateTime';
-
 		if (@params) {
-			unless ($params[0] eq 'export_to' and @params == 2) {
-				croak $help;
-			}
+			croak $help unless $params[0] eq 'export_to' and @params == 2;
 			$export_to = $params[1];
 		}
 
+		# Already exported?
 		return 1 if $exported{$export_to};
 
-		if ($export_to eq 'DateTime') {
-			require DateTime;
-			no warnings 'once';
-			*DateTime::create = \&create;
-		} else {
+		# Export
+		{
+			require DateTime if $export_to eq 'DateTime';
 			no warnings 'once';
 			no strict 'refs';
 			*{$export_to . '::create'} = \&create;
+			$exported{$export_to} = 1;
 		}
-		$exported{$export_to} = 1;
 	}
 
 	sub coerce_class ($class) {
