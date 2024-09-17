@@ -15,7 +15,7 @@ DateTimeX::Quickie - Extend DateTime by adding a convenient quickie() method.
         # Alternate interface with no export
         use DateTimeX::Quickie ();
         my $dt4 = DateTimeX::Quickie->new(DateTime => '2024-01-01 00:00:00');
-        my $dt4 = DateTimeX::Quickie->new('My::DateTime' => $string);
+        my $dt5 = DateTimeX::Quickie->new('My::DateTime' => $string);
 
 # DESCRIPTION
 
@@ -187,13 +187,18 @@ The following package globals may assist in debugging.
 
 # SEE ALSO
 
-- [DateTime::Auto](https://metacpan.org/pod/DateTime%3A%3AAuto)
-- [DateTime::Easy](https://metacpan.org/pod/DateTime%3A%3AEasy)
+- [DateTimeX::Auto](https://metacpan.org/pod/DateTimeX%3A%3AAuto)
+- [DateTimeX::Easy](https://metacpan.org/pod/DateTimeX%3A%3AEasy)
 - [DateTime::Format::DateParse](https://metacpan.org/pod/DateTime%3A%3AFormat%3A%3ADateParse)
 - [DateTime::Moonpig](https://metacpan.org/pod/DateTime%3A%3AMoonpig)
 
     DateTime::Moonpig is a wrapper around DateTime that prevents accidentally
     mutating existing objects, which can result at action-at-a-distance bugs.
+
+- :<DateTimeX::Immutable>
+
+    DateTimeX::Immutable is a newer implementation of an immutable DateTime
+    subclass.
 
 # AUTHOR
 

@@ -250,7 +250,7 @@ DateTimeX::Quickie - Extend DateTime by adding a convenient quickie() method.
 	# Alternate interface with no export
 	use DateTimeX::Quickie ();
 	my $dt4 = DateTimeX::Quickie->new(DateTime => '2024-01-01 00:00:00');
-	my $dt4 = DateTimeX::Quickie->new('My::DateTime' => $string);
+	my $dt5 = DateTimeX::Quickie->new('My::DateTime' => $string);
 
 
 =head1 DESCRIPTION
@@ -446,9 +446,9 @@ This is primarily for native subroutine signatures.
 
 =over 4
 
-=item L<DateTime::Auto>
+=item L<DateTimeX::Auto>
 
-=item L<DateTime::Easy>
+=item L<DateTimeX::Easy>
 
 =item L<DateTime::Format::DateParse>
 
@@ -456,6 +456,11 @@ This is primarily for native subroutine signatures.
 
 DateTime::Moonpig is a wrapper around DateTime that prevents accidentally
 mutating existing objects, which can result at action-at-a-distance bugs.
+
+=item :<DateTimeX::Immutable>
+
+DateTimeX::Immutable is a newer implementation of an immutable DateTime
+subclass.
 
 =back
 
