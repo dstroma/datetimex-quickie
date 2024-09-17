@@ -1,8 +1,8 @@
 package DateTimeX::Quickie 0.001 {
 
 	use v5.36;
+	use feature 'try';
 	use Carp;
-	use Try::Tiny;
 
 	our ($looks_like, $parser_used);
 	my  ($number_regex, $datetime_regex, @datetime_regex_capture_labels);
@@ -140,7 +140,10 @@ package DateTimeX::Quickie 0.001 {
 		try {
 			require DateTime::Format::ISO8601;
 			$dt = DateTime::Format::ISO8601->parse_datetime($string);
-		};
+		} catch ($e) {
+			carp "Unable to parse datetime string '$string'";
+			return undef;
+		}
 		if ($dt) {
 			bless $dt, $class unless ref $dt eq $class;
 			$parser_used = 'external';
