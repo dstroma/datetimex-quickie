@@ -1,30 +1,30 @@
 # NAME
 
-DateTimeX::Create - Extend DateTime by adding a convenient create() method.
+DateTimeX::Quickie - Extend DateTime by adding a convenient quickie() method.
 
 # SYNOPSIS
 
-        use DateTimeX::Create;
+        use DateTimeX::Quickie;
 
         # Create from list
-        my $dt1 = DateTime->create(2023, 03, 01, 0, 0, 0, 'America/Chicago');
+        my $dt1 = DateTime->quickie(2023, 03, 01, 0, 0, 0, 'America/Chicago');
 
         # Create from epoch time
-        my $dt2 = DateTime->create(time);
+        my $dt2 = DateTime->quickie(time);
 
         # Create from string
-        my $dt3 = DateTime->create('1978-07-04 20:18:45');
+        my $dt3 = DateTime->quickie('1978-07-04 20:18:45');
 
 # DESCRIPTION
 
-This module offers a create() class method that can be exported into DateTime
+This module offers a quickie() class method that can be exported into DateTime
 or another specified module. It may also be used without exporting anything. It
-returns new DateTime objects.
+returns new DateTime objects or objects from a DateTime-compatible class.
 
 This module takes a "do what I mean" approach and attempts to parse datetimes
 passed as either a list, arrayref, an epoch time, or an ISO8601-like string.
 
-The most simple use is to call DateTime->create with no arguments which returns
+The most simple use is to call DateTime->quickie with no arguments which returns
 a DateTime object equivalent to 0000-01-01 00:00:00.
 
 # JUSTIFICATION
@@ -54,23 +54,23 @@ section below for more information on that.
 
 # EXPORTING
 
-By default this module exports the create() method to the DateTime package.
-You can specify that this module exports its create method to a different
+By default this module exports the quickie() method to the DateTime package.
+You can specify that this module exports the method to a different
 namspace, and objects returned will be instances of the correct class:
 
-        use DateTimeX::Create (export_to => 'DateTime::Moonpig');
-        DateTime::Moonpig->create(...); # returns DateTime::Moonpig object
+        use DateTimeX::Quickie (export_to => 'DateTime::Moonpig');
+        DateTime::Moonpig->quickie(...); # returns DateTime::Moonpig object
 
 Or you can choose to not export anything:
 
-        use DateTimeX::Create ();                      # export nothing
-        DateTimeX::Create->create(...);                # returns DateTime object
-        DateTimeX::Create::create('My::DateTime', ...) # returns My::DateTime object
+        use DateTimeX::Quickie ();                       # export nothing
+        DateTimeX::Quickie->quickie(...);                # returns DateTime object
+        DateTimeX::Quickie::quickie('My::DateTime', ...) # returns My::DateTime object
 
 Exporting to multiple different namespaces is best done by calling import
 directly:
 
-        require DateTimeX::Create;
+        require DateTimeX::Quickie;
         DateTimeX->import(export_to => 'My::DateTime::Class');
         DateTimeX->import(export_to => 'My::Other::DateTime::Class');
 
@@ -79,11 +79,11 @@ other words the following will not work:
 
         use DateTimeX::Create qw(create); # error
 
-        package My::Caller {
+        package My::Module {
                 use DateTimeX::Create;
-                create(...)                   # error
+                create(...)               # error
         }
-        My::Caller->create(...)           # error
+        My::Module->create(...)           # error
 
 # PUBLIC METHODS
 
@@ -177,7 +177,6 @@ The following package globals may assist in debugging.
 
     This is primarily for native subroutine signatures. 
 
-- Regexp::Common
 - DateTime
 - Try::Tiny
 - Test::More for the test suite

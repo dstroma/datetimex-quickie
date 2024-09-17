@@ -1,22 +1,18 @@
-package DateTimeX::Create 0.001 {
+package DateTimeX::Quickie 0.001 {
 
 	use v5.36;
 	use Carp;
-	use DateTime ();
 	use Try::Tiny;
 
-	our $looks_like;
-	our $parser_used;
-	our $force_parser;
-	our ($datetime_regex, @datetime_regex_capture_labels) = prepare_regex_and_labels();
-	our $number_regex = qr/^[+-]?\d+(\.\d+)?$/;
+	our ($looks_like, $parser_used);
+	my  ($number_regex, $datetime_regex, @datetime_regex_capture_labels);
+	prepare_regex_and_labels();
 
-	sub new {
-		# This module is not meant to be its own class!
-		croak "new() is not a method of DateTimeX::Create";
+	sub new ($self_class, $target_class, @params) {
+		return quickie($target_class, @params);
 	}
 
-	sub create ($maybe_class, @params) {
+	sub quickie ($maybe_class, @params) {
 		my $class = coerce_class($maybe_class);
 
 		# Reset global debugging variables
@@ -27,6 +23,11 @@ package DateTimeX::Create 0.001 {
 		if (@params == 0) {
 			$looks_like = 'empty';
 			return new_from_empty($class);
+		}
+
+		# Is it 'now'?
+		elsif ($params[0] eq 'now') {
+			return new_now($class);
 		}
 
 		# Is it a list?
@@ -53,14 +54,7 @@ package DateTimeX::Create 0.001 {
 	}
 
 	sub new_from_empty ($class) {
-		return $class->new(
-			year   => 0,
-			month  => 1,
-			day    => 1,
-			hour   => 0,
-			minute => 0,
-			second => 0,
-		);
+		return $class->new(year=>0, month=>1, day=>1, hour=>0, minute=>0, second=>0);
 	}
 
 	sub new_from_list ($class, @params) {
@@ -84,19 +78,13 @@ package DateTimeX::Create 0.001 {
 	}
 
 	sub new_from_iso_string ($class, $string) {
-		if ($force_parser) {
-			return new_from_iso_string_internal($class, $string) if $force_parser eq 'internal';
-			return new_from_iso_string_external($class, $string) if $force_parser eq 'external';
-		}
-			
 		if (my $dt = new_from_iso_string_internal($class, $string)) {
 			return $dt;
 		}
 		if (my $dt = new_from_iso_string_external($class, $string)) {
 			return $dt;
 		}
-
-		croak qq{Unable to parse ISO-like datetime string \"$string\"};
+		croak qq{Unable to parse ISO-like datetime string "$string"};
 	}
 
 	sub new_from_iso_string_internal ($class, $string) {
@@ -129,9 +117,8 @@ package DateTimeX::Create 0.001 {
 			# useful for debugging
 			if ($capture{'zulu'} and $capture{'offset'}) {
 				croak(
-					"DateTimeX::Create::new_from_iso_string argument $string " .
-					'should not specify both Z and a timezone offset ' .
-					'(should be one or the other)'
+					"DateTimeX::Quickie::new_from_iso_string argument $string " .
+					'cannot specify both "Z" and a timezone offset '
 				);
 			}
 
@@ -145,6 +132,7 @@ package DateTimeX::Create 0.001 {
 
 			return $obj;
 		}
+		return undef;
 	}
 
 	sub new_from_iso_string_external ($class, $string) {
@@ -152,10 +140,9 @@ package DateTimeX::Create 0.001 {
 		try {
 			require DateTime::Format::ISO8601;
 			$dt = DateTime::Format::ISO8601->parse_datetime($string);
-			bless $dt, $class unless ref $dt eq $class;
 		};
-
 		if ($dt) {
+			bless $dt, $class unless ref $dt eq $class;
 			$parser_used = 'external';
 			return $dt;
 		}
@@ -195,13 +182,12 @@ package DateTimeX::Create 0.001 {
 		return ($second, 0);
 	}
 
-	sub import ($class, @params) {
-		state %exported;
+	sub import ($self_class, @params) {
 		state $help = 
 			'Valid uses:'.
-			'	use DateTimeX::Create;    # automatically export to DateTime'.
-			'	use DateTimeX::Create (); # no export'.
-			'	use DateTimeX::Create (export_to => "My::Module"); # export to specified module';
+			'	use DateTimeX::Quickie;    # automatically export to DateTime'.
+			'	use DateTimeX::Quickie (); # no export'.
+			'	use DateTimeX::Quickie (export_to => "My::Module"); # export to specified module';
 
 		# Determine where to export
 		my $export_to = 'DateTime';
@@ -209,18 +195,17 @@ package DateTimeX::Create 0.001 {
 			croak $help unless $params[0] eq 'export_to' and @params == 2;
 			$export_to = $params[1];
 		}
+		__PACKAGE__->export_to($export_to);
+	}
 
-		# Already exported?
-		return 1 if $exported{$export_to};
-
-		# Export
-		{
-			require DateTime if $export_to eq 'DateTime';
-			no warnings 'once';
-			no strict 'refs';
-			*{$export_to . '::create'} = \&create;
-			$exported{$export_to} = 1;
-		}
+	sub export_to ($self_class, $export_to) {
+		state %exported;
+		return 1 if $exported{$export_to}; # Already exported
+		require DateTime if $export_to eq 'DateTime';
+		no warnings 'once';
+		no strict 'refs';
+		*{$export_to . '::quickie'} = \&quickie;
+		$exported{$export_to} = 1;
 	}
 
 	sub coerce_class ($class) {
@@ -237,15 +222,11 @@ package DateTimeX::Create 0.001 {
 		my $separator    = '[T\s]';
 		my $time         = '(\d\d):(\d\d):(\d\d)([\.,]\d+)?';
 		my $maybe_tzone  = '(?:(Z|UTC)|([+-]\d\d|[+-]\d\d[:]?\d\d))?';
-		my $regex        = qr/^$date$separator$time$maybe_tzone$/;
 
-		my @labels = qw(
-			year month day
-			hour minute second second_fraction
-			zulu offset
-		);
-
-		return ($regex, @labels);
+		$datetime_regex = qr/^$date$separator$time$maybe_tzone$/;
+		@datetime_regex_capture_labels = qw(year month day hour minute second second_fraction zulu offset);
+		$number_regex = qr/^[+-]?\d+(\.\d+)?$/;
+		return 1;
 	}
 }
 
@@ -253,34 +234,38 @@ package DateTimeX::Create 0.001 {
 
 =head1 NAME
 
-DateTimeX::Create - Extend DateTime by adding a convenient create() method.
+DateTimeX::Quickie - Extend DateTime by adding a convenient quickie() method.
 
 
 =head1 SYNOPSIS
 
-	use DateTimeX::Create;
+	# Default export 'quickie' to 'DateTime'
+	use DateTimeX::Quickie;
 
-	# Create from list
-	my $dt1 = DateTime->create(2023, 03, 01, 0, 0, 0, 'America/Chicago');
+	# Create from list, epoch, or ISO string
+	my $dt1 = DateTime->quickie(2023, 03, 01, 0, 0, 0, 'America/Chicago');
+	my $dt2 = DateTime->quickie(946684800); # 1 Jan 2000
+	my $dt3 = DateTime->quickie('1978-07-04 20:18:45');
 
-	# Create from epoch time
-	my $dt2 = DateTime->create(time);
-
-	# Create from string
-	my $dt3 = DateTime->create('1978-07-04 20:18:45');
+	# Alternate interface with no export
+	use DateTimeX::Quickie ();
+	my $dt4 = DateTimeX::Quickie->new(DateTime => '2024-01-01 00:00:00');
+	my $dt4 = DateTimeX::Quickie->new('My::DateTime' => $string);
 
 
 =head1 DESCRIPTION
 
-This module offers a create() class method that can be exported into DateTime
-or another specified module. It may also be used without exporting anything. It
-returns new DateTime objects.
+The purpose of this module is to be able to create DateTime objects (or objects
+of a DateTime-like class) quickly with little typing.
+
+By default, the quickie() method is exported to the DateTime package. You can
+also export to a different package, or not export anything ata all.
 
 This module takes a "do what I mean" approach and attempts to parse datetimes
 passed as either a list, arrayref, an epoch time, or an ISO8601-like string.
 
-The most simple use is to call DateTime->create with no arguments which returns
-a DateTime object equivalent to 0000-01-01 00:00:00.
+The most simple use is to call with no arguments which returns an object
+equivalent to 0000-01-01 00:00:00.
 
 
 =head1 JUSTIFICATION
@@ -308,50 +293,54 @@ Unlike these other modules, this one can be used on subclasses of DateTime
 will return objects already blessed into the correct class. See the EXPORTING
 section below for more information on that.
 
+Why have a "safe" way and a "dangerous" way? Because the whole point of this
+module is to save typing.
+
+	my $datetime = DateTime->quickie($arg);
+
+Is less typing than
+
+	my $datetime = DateTimeX::Quickie->new('DateTime' => $arg);
+
 
 =head1 EXPORTING
 
-By default this module exports the create() method to the DateTime package.
-You can specify that this module exports its create method to a different
-namspace, and objects returned will be instances of the correct class:
+Important! This module is not a subclass of DateTime!
 
-	use DateTimeX::Create (export_to => 'DateTime::Moonpig');
-	DateTime::Moonpig->create(...); # returns DateTime::Moonpig object
+By default this module exports the quickie() method to the DateTime package.
+You can specify that this module exports to a different package, and
+objects returned will be instances of the appropriate class:
 
-Or you can choose to not export anything:
+	use DateTimeX::Quickie (export_to => 'DateTime::Moonpig');
+	DateTime::Moonpig->quickie(...); # returns DateTime::Moonpig object
 
-	use DateTimeX::Create ();                      # export nothing
-	DateTimeX::Create->create(...);                # returns DateTime object
-	DateTimeX::Create::create('My::DateTime', ...) # returns My::DateTime object
+Or you can choose to not export anything. However, if you do this and call
+new(), you MUST specify what kind of object you want.
+
+	use DateTimeX::Quickie ();
+	DateTimeX::Quickie->new('DateTime' => ...);
 
 Exporting to multiple different namespaces is best done by calling import
-directly:
+directly or using the more semantic export_to class method.
 
-	require DateTimeX::Create;
-	DateTimeX->import(export_to => 'My::DateTime::Class');
-	DateTimeX->import(export_to => 'My::Other::DateTime::Class');
+	require DateTimeX::Quickie;
+	DateTimeX::Quickie->import(export_to => 'My::DateTime::Class');
+	DateTimeX::Quickie->export_to('Another::DateTime::Class');
 
-Note that this module does NOT export anything to the caller's namespace. In
-other words the following will not work:
+This module does NOT export anything to the caller's namespace!
 
-	use DateTimeX::Create qw(create); # error
+	use DateTimeX::Quickie qw(quickie); # error
 
-	package My::Caller {
-		use DateTimeX::Create;
-		create(...)                   # error
-	}
-	My::Caller->create(...)           # error
+	package My::Module;
+	use DateTimeX::Quickie;
+	quickie(...) # error
 
 
 =head1 PUBLIC METHODS
 
-There is only one method intended for public consumption, which is the
-create() class method. It can be used with three different kinds of arguments.
-
-
 =over 4
 
-=item create(list) OR create(arrayref)
+=item quickie(list) OR quickie(arrayref)
 
 A list is interpreted as containing elements necessary to create a DateTime in 
 descending order, in other words, year, month, day, hour, minute, second,
@@ -360,31 +349,31 @@ and optional nanosecond, in that order.
 Optionally, a time_zone name may be supplied at the beginning or end of the list.
 This string will be checked using the DateTime::TimeZone->is_valid_name method.
 
-	$dt = DateTime->create(2020, 01, 01, 8, 30, 0, 'America/Chicago');
+	$dt = DateTime->quickie(2020, 01, 01, 8, 30, 0, 'America/Chicago');
 	# 2020-01-01T08:30:00
 
 The default year is 0. The default month and day are 1. The default hour,
 minute, and second are 0.
 
-In create(list) form, either zero or more than one element is required (as
+In quickie(list) form, either zero or more than one element is required (as
 a single element would be interpreted as a string or seconds since epoch), but
 any element may be undef.
 
-In create(arrayref) form, all elements may be undef or
+In quickie(arrayref) form, all elements may be undef or
 missing.
 
-	$dt = DateTime->create;               # 0000-01-01T00:00:00
-	$dt = DateTime->create([]);           # same
-	$dt = DateTime->create(undef, undef); # same
-	$dt = DateTime->create(2020,  undef); # 2020-01-01T00:00:00
+	$dt = DateTime->quickie;               # 0000-01-01T00:00:00
+	$dt = DateTime->quickie([]);           # same
+	$dt = DateTime->quickie(undef, undef); # same
+	$dt = DateTime->quickie(2020,  undef); # 2020-01-01T00:00:00
 
 Be careful not to supply just a year in list form, as this is interpreted as
 an epoch time:
 
-	$dt = DateTime->create(2020); # 1970-01-01T00:33:40
+	$dt = DateTime->quickie(2020); # 1970-01-01T00:33:40
 
 
-=item create(number)
+=item quickie(number)
 
 An integer or float is interpreted as an epoch time and is passed directly
 to DateTime's from_epoch() class method.
@@ -432,12 +421,6 @@ strings 'empty', 'list', 'arrayref', 'epoch', or 'iso_string'. May be undef.
 
 If used to parse an ISO-style string, may be 'internal' or 'external', with
 'external' referring to DateTime::Format::ISO8601;
-
-=item $DateTimeX::Create::force_parser
-
-If this variable equals the string 'internal' or 'external', the create() method
-will only attempt to use only the corresponding parser (as described above). The
-default is undef, which will favor the internal parser.
 
 =back
 
