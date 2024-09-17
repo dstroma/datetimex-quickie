@@ -4,28 +4,32 @@ DateTimeX::Quickie - Extend DateTime by adding a convenient quickie() method.
 
 # SYNOPSIS
 
+        # Default export 'quickie' to 'DateTime'
         use DateTimeX::Quickie;
 
-        # Create from list
+        # Create from list, epoch, or ISO string
         my $dt1 = DateTime->quickie(2023, 03, 01, 0, 0, 0, 'America/Chicago');
-
-        # Create from epoch time
-        my $dt2 = DateTime->quickie(time);
-
-        # Create from string
+        my $dt2 = DateTime->quickie(946684800); # 1 Jan 2000
         my $dt3 = DateTime->quickie('1978-07-04 20:18:45');
+
+        # Alternate interface with no export
+        use DateTimeX::Quickie ();
+        my $dt4 = DateTimeX::Quickie->new(DateTime => '2024-01-01 00:00:00');
+        my $dt4 = DateTimeX::Quickie->new('My::DateTime' => $string);
 
 # DESCRIPTION
 
-This module offers a quickie() class method that can be exported into DateTime
-or another specified module. It may also be used without exporting anything. It
-returns new DateTime objects or objects from a DateTime-compatible class.
+The purpose of this module is to be able to create DateTime objects (or objects
+of a DateTime-like class) quickly with little typing.
+
+By default, the quickie() method is exported to the DateTime package. You can
+also export to a different package, or not export anything ata all.
 
 This module takes a "do what I mean" approach and attempts to parse datetimes
 passed as either a list, arrayref, an epoch time, or an ISO8601-like string.
 
-The most simple use is to call DateTime->quickie with no arguments which returns
-a DateTime object equivalent to 0000-01-01 00:00:00.
+The most simple use is to call with no arguments which returns an object
+equivalent to 0000-01-01 00:00:00.
 
 # JUSTIFICATION
 
@@ -52,45 +56,50 @@ Unlike these other modules, this one can be used on subclasses of DateTime
 will return objects already blessed into the correct class. See the EXPORTING
 section below for more information on that.
 
+Why have a "safe" way and a "dangerous" way? Because the whole point of this
+module is to save typing.
+
+        my $datetime = DateTime->quickie($arg);
+
+Is less typing than
+
+        my $datetime = DateTimeX::Quickie->new('DateTime' => $arg);
+
 # EXPORTING
 
+Important! This module is not a subclass of DateTime!
+
 By default this module exports the quickie() method to the DateTime package.
-You can specify that this module exports the method to a different
-namspace, and objects returned will be instances of the correct class:
+You can specify that this module exports to a different package, and
+objects returned will be instances of the appropriate class:
 
         use DateTimeX::Quickie (export_to => 'DateTime::Moonpig');
         DateTime::Moonpig->quickie(...); # returns DateTime::Moonpig object
 
-Or you can choose to not export anything:
+Or you can choose to not export anything. However, if you do this and call
+new(), you MUST specify what kind of object you want.
 
-        use DateTimeX::Quickie ();                       # export nothing
-        DateTimeX::Quickie->quickie(...);                # returns DateTime object
-        DateTimeX::Quickie::quickie('My::DateTime', ...) # returns My::DateTime object
+        use DateTimeX::Quickie ();
+        DateTimeX::Quickie->new('DateTime' => ...);
 
 Exporting to multiple different namespaces is best done by calling import
-directly:
+directly or using the more semantic export\_to class method.
 
         require DateTimeX::Quickie;
-        DateTimeX->import(export_to => 'My::DateTime::Class');
-        DateTimeX->import(export_to => 'My::Other::DateTime::Class');
+        DateTimeX::Quickie->import(export_to => 'My::DateTime::Class');
+        DateTimeX::Quickie->export_to('Another::DateTime::Class');
 
-Note that this module does NOT export anything to the caller's namespace. In
-other words the following will not work:
+This module does NOT export anything to the caller's namespace!
 
-        use DateTimeX::Create qw(create); # error
+        use DateTimeX::Quickie qw(quickie); # error
 
-        package My::Module {
-                use DateTimeX::Create;
-                create(...)               # error
-        }
-        My::Module->create(...)           # error
+        package My::Module;
+        use DateTimeX::Quickie;
+        quickie(...) # error
 
 # PUBLIC METHODS
 
-There is only one method intended for public consumption, which is the
-create() class method. It can be used with three different kinds of arguments.
-
-- create(list) OR create(arrayref)
+- quickie(list) OR quickie(arrayref)
 
     A list is interpreted as containing elements necessary to create a DateTime in 
     descending order, in other words, year, month, day, hour, minute, second,
@@ -99,30 +108,30 @@ create() class method. It can be used with three different kinds of arguments.
     Optionally, a time\_zone name may be supplied at the beginning or end of the list.
     This string will be checked using the DateTime::TimeZone->is\_valid\_name method.
 
-            $dt = DateTime->create(2020, 01, 01, 8, 30, 0, 'America/Chicago');
+            $dt = DateTime->quickie(2020, 01, 01, 8, 30, 0, 'America/Chicago');
             # 2020-01-01T08:30:00
 
     The default year is 0. The default month and day are 1. The default hour,
     minute, and second are 0.
 
-    In create(list) form, either zero or more than one element is required (as
+    In quickie(list) form, either zero or more than one element is required (as
     a single element would be interpreted as a string or seconds since epoch), but
     any element may be undef.
 
-    In create(arrayref) form, all elements may be undef or
+    In quickie(arrayref) form, all elements may be undef or
     missing.
 
-            $dt = DateTime->create;               # 0000-01-01T00:00:00
-            $dt = DateTime->create([]);           # same
-            $dt = DateTime->create(undef, undef); # same
-            $dt = DateTime->create(2020,  undef); # 2020-01-01T00:00:00
+            $dt = DateTime->quickie;               # 0000-01-01T00:00:00
+            $dt = DateTime->quickie([]);           # same
+            $dt = DateTime->quickie(undef, undef); # same
+            $dt = DateTime->quickie(2020,  undef); # 2020-01-01T00:00:00
 
     Be careful not to supply just a year in list form, as this is interpreted as
     an epoch time:
 
-            $dt = DateTime->create(2020); # 1970-01-01T00:33:40
+            $dt = DateTime->quickie(2020); # 1970-01-01T00:33:40
 
-- create(number)
+- quickie(number)
 
     An integer or float is interpreted as an epoch time and is passed directly
     to DateTime's from\_epoch() class method.
@@ -165,18 +174,13 @@ The following package globals may assist in debugging.
     If used to parse an ISO-style string, may be 'internal' or 'external', with
     'external' referring to DateTime::Format::ISO8601;
 
-- $DateTimeX::Create::force\_parser
-
-    If this variable equals the string 'internal' or 'external', the create() method
-    will only attempt to use only the corresponding parser (as described above). The
-    default is undef, which will favor the internal parser.
-
 # DEPENDENCIES
 
 - perl v5.36 or greater
 
     This is primarily for native subroutine signatures. 
 
+- Regexp::Common
 - DateTime
 - Try::Tiny
 - Test::More for the test suite
