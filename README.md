@@ -136,9 +136,9 @@ This module does NOT export anything to the caller's namespace!
     An integer or float is interpreted as an epoch time and is passed directly
     to DateTime's from\_epoch() class method.
 
-- create(string)
+- quickie(string)
 
-    If the argument to create() is neither a list nor a number, it is assumed to
+    If the argument to quickie() is neither a list nor a number, it is assumed to
     be an ISO8601 style date string.
 
     This module will try to parse strings it thinks are ISO 8601 datetimes using
@@ -164,12 +164,12 @@ This module does NOT export anything to the caller's namespace!
 
 The following package globals may assist in debugging.
 
-- $DateTimeX::Create::looks\_like
+- $DateTimeX::Quickie::looks\_like
 
     What this module thinks the most recent argument type was. Contains one of the
     strings 'empty', 'list', 'arrayref', 'epoch', or 'iso\_string'. May be undef.
 
-- $DateTimeX::Create::parser\_used
+- $DateTimeX::Quickie::parser\_used
 
     If used to parse an ISO-style string, may be 'internal' or 'external', with
     'external' referring to DateTime::Format::ISO8601;
