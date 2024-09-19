@@ -2,7 +2,6 @@
 
 use v5.36;
 use Test::More;
-use Try::Tiny;
 use DateTime;
 
 # Test - load module with 'require' (so we don't call import yet)
@@ -17,7 +16,7 @@ ok(
 
 # Import
 ok(
-	try { DateTimeX::Quickie->import; 1; },
+	eval 'DateTimeX::Quickie->import; 1',
 	'Import DateTimeX::Quickie'
 );
 
@@ -41,7 +40,7 @@ ok(
 
 # Export to a different class
 ok(
-	try { DateTimeX::Quickie->import(export_to => 'My::Test::Class'); 1; },
+	eval q`DateTimeX::Quickie->import(export_to => 'My::Test::Class'); 1`,
 	'Export to a different class'
 );
 is(
@@ -69,4 +68,3 @@ ok(
 
 
 done_testing();
-

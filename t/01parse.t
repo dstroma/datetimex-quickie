@@ -1,8 +1,8 @@
 #!perl
 
 use v5.36;
+use feature 'try';
 use Test::More;
-use Try::Tiny;
 use DateTime;
 use DateTimeX::Quickie;
 
@@ -90,7 +90,7 @@ ok($dt = DateTime->quickie(year => 1999, month => 12, day => 31), 'quickie with 
 ok($dt eq "1999-12-31T00:00:00",                                  '...new object is correct');
 
 ok($dt = DateTime->quickie({year => 1999, month => 12, second => 59}), 'quickie with hashref');
-ok($dt eq "1999-12-01T00:00:59",                                 '...new object is correct');
+ok($dt eq "1999-12-01T00:00:59",                                       '...new object is correct');
 
 #################
 # Empty parsing #
@@ -161,7 +161,9 @@ try {
 	local $SIG{__WARN__} = sub { };
 	undef $dt;
 	$dt = DateTime->quickie('1989-06-05T12:02:59.56Z-02:30');
-};
+} catch ($e) {
+	;
+}
 is($dt => undef, 'Z and offset are invalid when used together');
 
 

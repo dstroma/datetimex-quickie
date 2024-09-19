@@ -477,8 +477,6 @@ This is primarily for native subroutine signatures.
 
 =item DateTime
 
-=item Try::Tiny
-
 =item Test::More for the test suite
 
 =back
