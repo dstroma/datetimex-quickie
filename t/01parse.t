@@ -36,22 +36,17 @@ is(DateTime->quickie( 123456789.5  )->nanosecond => s_to_ns(  0.5 ),  '+epoch wi
 is(DateTime->quickie( 123456789.333)->nanosecond => s_to_ns(  0.333), '+epoch with nanoseconds (3 decimal places) correct');
 is(DateTime->quickie(-123456789.667)->nanosecond => s_to_ns(1-0.667), '-epoch with nanoseconds correct');
 
-################
-# List Parsing #
+#############################
+# List and Arrayref Parsing #
+
+my @test_values = (2020, 2, 28, 12, 30, 15);
 
 # quickie via a list, without time zone
-ok($dt = DateTime->quickie(2020, 2, 28, 12, 30, 15), 'quickie via list');
-ok(
-	(
-		$dt->year   == 2020 and
-		$dt->month  ==    2 and
-		$dt->day    ==   28 and
-		$dt->hour   ==   12 and
-		$dt->minute ==   30 and
-		$dt->second ==   15
-	),
-	'new object has correct values'
-);
+ok($dt = DateTime->quickie(@test_values), 'quickie via list');
+is_deeply([ map { $dt->$_ } qw(year month day hour minute second) ], \@test_values,  'new object has correct values');
+ok($dt = DateTime->quickie(\@test_values), 'quickie via arrayref');
+is_deeply([ map { $dt->$_ } qw(year month day hour minute second) ], \@test_values,  'new object has correct values');
+
 ok(
 	ref $dt->time_zone eq 'DateTime::TimeZone::Floating',
 	'new object has floating timezone'
@@ -59,6 +54,11 @@ ok(
 
 # list, only specifying year
 ok($dt = DateTime->quickie(2020, undef, undef),      'quickie with list, but only specify the year');
+ok($dt eq "2020-01-01T00:00:00",                    '...new object is correct');
+ok($dt->time_zone->name eq 'floating',              '...new object has floating timezone');
+
+# arrayref, only specifying year
+ok($dt = DateTime->quickie([2020]),      'quickie with list, but only specify the year');
 ok($dt eq "2020-01-01T00:00:00",                    '...new object is correct');
 ok($dt->time_zone->name eq 'floating',              '...new object has floating timezone');
 
@@ -76,13 +76,21 @@ ok($dt->time_zone->name eq 'EST',                   '...new object has correct t
 ok($dt = DateTime->quickie(undef, undef),            'quickie with list, but with only undef elements');
 ok($dt eq "0000-01-01T00:00:00",                    '...new object is correct');
 
-# arrayref
+# arrayref empty
 ok($dt = DateTime->quickie([]),                      'quickie with arrayref, but empty');
 ok($dt eq "0000-01-01T00:00:00",                    '...new object is correct');
 ok($dt = DateTime->quickie([2020]),                  'quickie with arrayref, but only the year');
 ok($dt eq "2020-01-01T00:00:00",                    '...new object is correct');
 ok($dt = DateTime->quickie([2020, 07, 04]),          'quickie with arrayref, with y,m,d');
 ok($dt eq "2020-07-04T00:00:00",                    '...new object is correct');
+
+###################
+# Key Value Pairs #
+ok($dt = DateTime->quickie(year => 1999, month => 12, day => 31), 'quickie with key value list');
+ok($dt eq "1999-12-31T00:00:00",                                  '...new object is correct');
+
+ok($dt = DateTime->quickie({year => 1999, month => 12, second => 59}), 'quickie with hashref');
+ok($dt eq "1999-12-01T00:00:59",                                 '...new object is correct');
 
 #################
 # Empty parsing #

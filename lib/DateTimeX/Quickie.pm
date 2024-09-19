@@ -39,7 +39,13 @@ package DateTimeX::Quickie 0.001 {
 		# Is it an arrayref?
 		elsif (ref $params[0] and ref $params[0] eq 'ARRAY') {
 			$looks_like = 'arrayref';
-			return new_from_list($class, @{$params[0]});
+			return new_from_arrayref($class, $params[0]);
+		}
+
+		# Is it a hashref?
+		elsif (ref $params[0] and ref $params[0] eq 'HASH') {
+			$looks_like = 'hashref';
+			return new_from_hashref($class, $params[0]);
 		}
 
 		# Is it an integer or real number (epoch)?
@@ -58,8 +64,19 @@ package DateTimeX::Quickie 0.001 {
 	}
 
 	sub new_from_list ($class, @params) {
-		my $time_zone = extract_time_zone_from_params(\@params);
-		my ($year, $month, $day, $hour, $minute, $second, $nanosecond) = @params;
+		if (@params % 2 == 0) {
+			my $first = $params[0];
+			if ($first =~ m/^year|month|day|hour|minute|second|nanosecond|time_zone$/) {
+				my %params = @params;
+				return new_from_hashref($class, \%params);
+			}
+		}
+		return new_from_arrayref($class, \@params);
+	}
+
+	sub new_from_arrayref ($class, $params) {
+		my $time_zone = extract_time_zone_from_params($params);
+		my ($year, $month, $day, $hour, $minute, $second, $nanosecond) = @$params;
 
 		if ($second and not $nanosecond) {
 			($second, $nanosecond) = seconds_to_seconds_and_nanoseconds($second);
@@ -74,6 +91,19 @@ package DateTimeX::Quickie 0.001 {
 			second     => $second     // 0,
 			nanosecond => $nanosecond // 0,
 			$time_zone ? (time_zone  => $time_zone) : (),
+		);
+	}
+
+	sub new_from_hashref ($class, $r) {
+		return $class->new(
+			year       => $r->{year}   // 0,
+			month      => $r->{month}  || 1,
+			day        => $r->{day}    || 1,
+			hour       => $r->{hour}   // 0,
+			minute     => $r->{minute} // 0,
+			second     => $r->{second} // 0,
+			nanosecond => $r->{nanosecond} // 0,
+			$r->{time_zone} ? (time_zone => $r->{time_zone}) : (),
 		);
 	}
 
@@ -245,15 +275,22 @@ DateTimeX::Quickie - Extend DateTime by adding a convenient quickie() method.
 	# Default export 'quickie' to 'DateTime'
 	use DateTimeX::Quickie;
 
-	# Create from list, epoch, or ISO string
+	# Create from list of values (or arrayref)
 	my $dt1 = DateTime->quickie(2023, 03, 01, 0, 0, 0, 'America/Chicago');
-	my $dt2 = DateTime->quickie(946684800); # 1 Jan 2000
-	my $dt3 = DateTime->quickie('1978-07-04 20:18:45');
+
+	# Create from key-value pairs (or hashref) (specify at least 1 pair)
+	my $dt2 = DateTime->quickie(year => 2023); # 1 Jan 2023 00:00:00
+
+    # Epoch time
+	my $dt3 = DateTime->quickie(946684800); # 1 Jan 2000
+
+    # ISO8601-like string (with space or 'T' between date and time)
+	my $dt4 = DateTime->quickie('1978-07-04 20:18:45');
 
 	# Alternate interface with no export
 	use DateTimeX::Quickie ();
-	my $dt4 = DateTimeX::Quickie->new(DateTime => '2024-01-01 00:00:00');
-	my $dt5 = DateTimeX::Quickie->new('My::DateTime' => $string);
+	my $dt5 = DateTimeX::Quickie->new(DateTime => '2024-01-01 00:00:00');
+	my $dt6 = DateTimeX::Quickie->new('My::DateTime' => $string);
 
 
 =head1 DESCRIPTION
@@ -265,7 +302,8 @@ By default, the quickie() method is exported to the DateTime package. You can
 also export to a different package, or not export anything ata all.
 
 This module takes a "do what I mean" approach and attempts to parse datetimes
-passed as either a list, arrayref, an epoch time, or an ISO8601-like string.
+passed as either a list, arrayref, hashref, an epoch number, or an ISO8601-like
+string.
 
 The most simple use is to call with no arguments which returns an object
 equivalent to 0000-01-01 00:00:00.
